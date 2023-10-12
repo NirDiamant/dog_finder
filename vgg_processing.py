@@ -46,4 +46,27 @@ def get_l2_vgg_features(vgg_features1, vgg_features2):
 
 
 
+def get_cosine_similarity(vgg_features1, vgg_features2):
+    """
+    Computes the cosine similarity between two sets of VGG features.
+
+    Args:
+        vgg_features1 (torch.Tensor): The VGG features of the first image.
+        vgg_features2 (torch.Tensor): The VGG features of the second image.
+
+    Returns:
+        float: The cosine similarity between the two sets of VGG features.
+    """
+    # Ensure the tensors are flattened
+    vgg_features1_flat = vgg_features1.view(-1)
+    vgg_features2_flat = vgg_features2.view(-1)
+    
+    # Compute cosine similarity
+    cosine_similarity = F.cosine_similarity(vgg_features1_flat.unsqueeze(0), vgg_features2_flat.unsqueeze(0), dim=1).item()
+    
+    return cosine_similarity
+
+
+
+
 

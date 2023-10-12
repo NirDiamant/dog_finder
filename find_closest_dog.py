@@ -5,14 +5,14 @@ import heapq
 import copy
 
 from utils import to_vgg_input
-from vgg_processing import get_vgg_features, get_l2_vgg_features
+from vgg_processing import get_vgg_features, get_l2_vgg_features, get_cosine_similarity
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 vgg16 = torch.hub.load('pytorch/vision:v0.10.0', 'vgg16', pretrained=True).eval().to(device)
 
 
-def find_k_closest_dogs(img, vgg_features_dict, k):
+def find_k_closest_dogs(img, vgg_features_dict, k, similarity_func = get_l2_vgg_features):
     """
     This function identifies the k most similar dogs to a given image based on their VGG-16 features.
     
@@ -44,13 +44,13 @@ def find_k_closest_dogs(img, vgg_features_dict, k):
 
     for _, value in vgg_features_dict.items():
         dog_imgs, dog_features = value
-        vgg_dist = get_l2_vgg_features(img_vgg_features, dog_features)
+        vgg_dist = similarity_func(img_vgg_features, dog_features)
         if len(closest_dogs_heap) < k:
             # If the heap has fewer than k items, add the current item
-            heapq.heappush(closest_dogs_heap, (-vgg_dist, dog_features.clone(), copy.deepcopy(dog_imgs)))
+            heapq.heappush(closest_dogs_heap, (-vgg_dist, dog_features, dog_imgs))
         else:
             # If the heap has k items, add the current item and remove the smallest item
-            heapq.heappushpop(closest_dogs_heap, (-vgg_dist, dog_features.clone(), copy.deepcopy(dog_imgs)))
+            heapq.heappushpop(closest_dogs_heap, (-vgg_dist, dog_features, dog_imgs))
 
     # Convert the heap to a list of (dog_img, dog_features) tuples and sort by distance
     # Negate the distances again to get positive distances
@@ -147,6 +147,7 @@ def main():
 
     # Extract and list the images of the k most similar dogs
     closest_images_list = [dog_img for _,_, dog_img in closest_dogs_list]
+    print("")
 
 if __name__ == '__main__':
     main()
