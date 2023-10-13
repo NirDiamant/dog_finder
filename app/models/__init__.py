@@ -1,0 +1,1 @@
+from .dog_document import DogDocument
