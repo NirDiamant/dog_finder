@@ -1,0 +1,5 @@
+.venv/
+.weaviate
+.weaviate_data
+__pycache__
+.vscode/launch.json

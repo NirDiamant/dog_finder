@@ -1,0 +1,52 @@
+version: '3.5'
+services:
+  weaviate:
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:1.21.2
+    ports:
+    - 8080:8080
+    restart: on-failure:0
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      CLUSTER_HOSTNAME: 'node1'
+    # add volume to persist data
+    volumes:
+      - /usr/local/dogfinder/.weaviate_data:/var/lib/weaviate
+    networks:
+      - my-network
+  dogfinder:
+    command:
+    - uvicorn
+    - app.main:app
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8000'
+    image: dogfinder:latest
+    ports:
+    - 8000:8000
+    restart: on-failure:0
+    environment:
+      AI_MODULES: 'dogfinder'
+      WEAVIATE_HOST: 'weaviate'
+      SENTENCE_TRANSFORMER_EMBEDDING_MODEL_NAME: 'clip-ViT-B-32'
+    # add volume to persist data
+    volumes:
+      - /usr/local/dogfinder/logs/:/var/log/dogfinder/
+    networks:
+      - my-network
+    depends_on:
+      - weaviate
+
+networks:
+  my-network:
+    driver: bridge
