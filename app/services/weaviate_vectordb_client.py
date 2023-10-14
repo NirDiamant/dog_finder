@@ -37,6 +37,7 @@ class WeaviateVectorDBClient(IVectorDBClient):
                             logger.error(result["result"])
                             errors.append({"error": result["result"]["errors"]["error"], "properties": result["properties"]})
                     else:
+                        logger.info(f"found result {result}")
                         success.append({ "properties": result["properties"] })
         #endregion
 
@@ -116,7 +117,7 @@ class WeaviateVectorDBClient(IVectorDBClient):
             })
             .with_where(filter)
             .with_limit(limit)
-            .with_additional(["distance"])
+            .with_additional(["distance","id"])
             .do()
         )
         
