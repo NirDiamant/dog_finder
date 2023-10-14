@@ -22,3 +22,6 @@ class IVectorDBClient(ABC):
     @abstractmethod
     def get_schema(self, class_name: str) -> None:
         pass
+
+    def update_document(self, class_name, dog_id, data:Dict):
+        pass

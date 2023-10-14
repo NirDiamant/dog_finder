@@ -172,3 +172,11 @@ class WeaviateVectorDBClient(IVectorDBClient):
     @timeit
     def get_schema(self, class_name: str):
         return self.client.schema.get(class_name)
+
+    @timeit
+    def update_document(self, class_name, dog_id, data:Dict):
+        self.client.data_object.update(
+            uuid=dog_id,
+            class_name=class_name,
+            data_object=data,
+        )

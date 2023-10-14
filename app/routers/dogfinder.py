@@ -43,7 +43,7 @@ dog_class_definition = {
                 "name": "type",
                 "dataType": ["text"],
                 "description": "Found Or Lost"
-            },            
+            },
             {
                 "name": "filename",
                 "dataType": ["text"],
@@ -76,6 +76,11 @@ class QueryRequest(BaseModel):
     top: int = 10
     return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD]
 
+class DogFoundRequest(BaseModel):
+    dogId: str
+
+
+
 @router.on_event("startup")
 async def startup_event():
     """
@@ -85,7 +90,7 @@ async def startup_event():
 
     # Create the vector db client, connecting to the weaviate instance
     vecotrDBClient = WeaviateVectorDBClient(url=f"http://{os.getenv('WEAVIATE_HOST', 'localhost')}:{os.getenv('WEAVIATE_PORT', '8080')}")
-    
+
     # Create the schema
     vecotrDBClient.create_schema(class_name="Dog", class_obj=dog_class_definition)
 
@@ -104,24 +109,24 @@ async def query(query: Optional[str] = Form(None), type: str = Form(...), breed:
         # Create the embedding model
         logger.info(f"Creating embedding model")
         embedding_model, cache_info = create_embedding_model()
-        
+
         # Embed the query image
         query_embedding = embed_query(query_image, embedding_model)
 
         # Build the filter with conditions to query the vector db
         filter = build_filter(queryRequest)
-        
+
         # Query the database
         logger.info(f"Querying the database")
         results = vecotrDBClient.query(class_name="Dog", query=query, query_embedding=query_embedding, limit=queryRequest.top, offset=None, filter=filter.to_dict(), properties=queryRequest.return_properties)
-        
+
         api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
     except Exception as e:
         logger.error(f"Error while querying the vecotrdb: {e}")
         api_response = APIResponse(status_code=500, message=f"Error while querying the vecotrdb: {e}", data={ "total": 0, "results": [] })
     finally:
         # return back a json response and set the status code to api_response.status_code
-        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code) 
+        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.post("/add_document", response_model=APIResponse)
 async def add_document(type: str = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...)):
@@ -182,7 +187,7 @@ async def add_documents(documentRequest: DocumentRequest):
         # Create the embedding model
         logger.info(f"Creating embedding model")
         embedding_model, cache_info = create_embedding_model()
-            
+
         # Embed the documents images
         embedding_results = embed_documents([create_pil_image(document.image) for document in documentRequest.documents], embedding_model)
 
@@ -190,7 +195,7 @@ async def add_documents(documentRequest: DocumentRequest):
         for i, document in enumerate(documentRequest.documents):
             try:
                 # Create the data object
-                data_properties = create_data_properties(document)       
+                data_properties = create_data_properties(document)
 
                 # Create a uuid based on the filename
                 data_properties[UUID_FIELD] = generate_uuid5({"filename": document.filename})
@@ -232,9 +237,20 @@ async def clean_all():
         api_response = APIResponse(status_code=500, message=f"Error deleting all documents from the vectordb: {result.get('message')}")
     else:
         api_response = APIResponse(status_code=200, message=f"All documents were deleted from the vectordb")
-    
+
     # return back a json response and set the status code to api_response.status_code
-    return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code) 
+    return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
+@router.post("/doc_found", response_model=APIResponse)
+async def doc_found(foundRequest: DogFoundRequest):
+
+    vecotrDBClient.update_document("Dog", foundRequest.dogId,{
+                "isFound": True,
+            })
+
+    api_response = APIResponse(status_code=200, message=f"found dog marked", data={})
+    # return back a json response and set the status code to api_response.status_code
+    return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 # build a predicate for the properties, breed, type, if they are not None with and_ between them
 @timeit
@@ -307,7 +323,7 @@ def embed_query(query, embedding_model):
     else:
         # create a random embedding
         query_embedding = [0.1] * 512
-    
+
     return query_embedding
 
 def _json_serializable(value: Any) -> Any:
