@@ -9,3 +9,4 @@ class DogDocument(BaseModel):
     type: str
     breed: Optional[str] = None
     isFound: bool = False
+    phoneNumber: str
