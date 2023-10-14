@@ -66,6 +66,11 @@ dog_class_definition = {
                 "name": DOG_ID_FIELD,
                 "dataType": ["text"],
                 "description": "id of the dog"
+            },
+            {
+                "name": "contactInfo",
+                "dataType": ["text"],
+                "description": "contact info related to the dog"
             }
         ]
     }
@@ -87,7 +92,7 @@ class QueryRequest(BaseModel):
     image: str
     breed: Optional[str] = None
     top: int = 10
-    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD]
+    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD, "contactInfo"]
 
 class DogFoundRequest(BaseModel):
     dogId: str
@@ -142,7 +147,7 @@ async def query(query: Optional[str] = Form(None), type: str = Form(...), breed:
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.post("/add_document", response_model=APIResponse)
-async def add_document(type: str = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...)):
+async def add_document(type: str = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), contactInfo: str = Form(...)):
     # logger.info(f"Document Request: {documentRequest}")
 
     try:
@@ -155,7 +160,7 @@ async def add_document(type: str = Form(...), breed: Optional[str] = Form(None),
         document_image = create_pil_image(img_base64)
 
         # Create DogDocument
-        dogDocument = DogDocument(type=type, breed=breed, image=img_base64, filename=img.filename)
+        dogDocument = DogDocument(type=type, breed=breed, image=img_base64, filename=img.filename,contactInfo=contactInfo)
 
         # Create the embedding model
         logger.info(f"Creating embedding model")
