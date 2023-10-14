@@ -1,4 +1,5 @@
 import hashlib
+import uuid
 from typing import Any, List, Optional
 from app.MyLogger import logger
 from app.models.api_response import APIResponse
@@ -27,6 +28,7 @@ vecotrDBClient: IVectorDBClient
 
 IS_FOUND_FIELD = "isFound"
 UUID_FIELD = "uuid5"
+DOG_ID_FIELD = "dogId"
 
 dog_class_definition = {
         "class": "Dog",
@@ -59,12 +61,20 @@ dog_class_definition = {
                 "name": IS_FOUND_FIELD,
                 "dataType": ["boolean"],
                 "description": "was the dog found?"
+            },
+            {
+                "name": DOG_ID_FIELD,
+                "dataType": ["text"],
+                "description": "id of the dog"
             }
         ]
     }
 
 def hash_image(image):
     return hashlib.md5(image)
+
+def generate_dog_id():
+    return str(uuid.uuid4())
 
 
 # This is the request model for the add_documents endpoint
@@ -77,7 +87,7 @@ class QueryRequest(BaseModel):
     image: str
     breed: Optional[str] = None
     top: int = 10
-    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD]
+    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD]
 
 class DogFoundRequest(BaseModel):
     dogId: str
@@ -156,7 +166,7 @@ async def add_document(type: str = Form(...), breed: Optional[str] = Form(None),
 
         try:
             # Create the data object
-            data_properties = create_data_properties(dogDocument)
+            data_properties = create_data_properties(dogDocument, generate_dog_id())
             # Create a uuid based on the filename
             data_properties[UUID_FIELD] = generate_uuid5({"breed": dogDocument.breed, "type": dogDocument.type,"imageHash":hash_image(dogDocument.image)})
             data_properties["document_embedding"] = dog_embedding
@@ -193,12 +203,13 @@ async def add_documents(documentRequest: DocumentRequest):
 
         # Embed the documents images
         embedding_results = embed_documents([create_pil_image(document.image) for document in documentRequest.documents], embedding_model)
+        request_dog_id = generate_dog_id()
 
         # Iterate over the documents and add them to the database
         for i, document in enumerate(documentRequest.documents):
             try:
                 # Create the data object
-                data_properties = create_data_properties(document)
+                data_properties = create_data_properties(document, request_dog_id)
 
                 # Create a uuid based on the filename
                 data_properties[UUID_FIELD] = generate_uuid5({"breed": data_properties.breed, "type": data_properties.type, "imageHash": hash_image(data_properties.image)})
@@ -280,7 +291,7 @@ def build_filter(queryRequest: QueryRequest) -> Optional[Filter]:
     # if there are no predicates return None
     return None
 
-def create_data_properties(document: DogDocument) -> dict[str, Any]:
+def create_data_properties(document: DogDocument, dog_id:str) -> dict[str, Any]:
     # Transform document to dictionary
     data_properties = document.model_dump()
 
@@ -288,6 +299,8 @@ def create_data_properties(document: DogDocument) -> dict[str, Any]:
     for key, val in data_properties.items():
         if isinstance(val, datetime):
             data_properties[key.lower()] = val.strftime("%Y-%m-%dT%H:%M:%S.%SZ") if val else None
+
+    data_properties[DOG_ID_FIELD] = dog_id
 
     return data_properties
 
