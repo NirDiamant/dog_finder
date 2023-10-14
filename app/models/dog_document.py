@@ -8,3 +8,4 @@ class DogDocument(BaseModel):
     image: str
     type: str
     breed: Optional[str] = None
+    isFound: bool = False

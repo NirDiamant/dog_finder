@@ -24,6 +24,9 @@ logger.info("Starting up the dogfinder router")
 router = APIRouter(prefix="/dogfinder")
 vecotrDBClient: IVectorDBClient
 
+IS_FOUND_FIELD = "isFound"
+UUID_FIELD = "uuid5"
+
 dog_class_definition = {
         "class": "Dog",
         "invertedIndexConfig": {
@@ -50,6 +53,11 @@ dog_class_definition = {
                 "name": "image",
                 "dataType": ["blob"],
                 "description": "Image"
+            },
+            {
+                "name": IS_FOUND_FIELD,
+                "dataType": ["boolean"],
+                "description": "was the dog found?"
             }
         ]
     }
@@ -66,7 +74,7 @@ class QueryRequest(BaseModel):
     image: str
     breed: Optional[str] = None
     top: int = 10
-    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image"]
+    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD]
 
 @router.on_event("startup")
 async def startup_event():
@@ -142,7 +150,7 @@ async def add_document(type: str = Form(...), breed: Optional[str] = Form(None),
             # Create the data object
             data_properties = create_data_properties(dogDocument)
             # Create a uuid based on the filename
-            data_properties["uuid5"] = generate_uuid5({ "filename": dogDocument.filename })
+            data_properties[UUID_FIELD] = generate_uuid5({"filename": dogDocument.filename})
             data_properties["document_embedding"] = dog_embedding
 
             documents.append(data_properties)
@@ -183,13 +191,14 @@ async def add_documents(documentRequest: DocumentRequest):
             try:
                 # Create the data object
                 data_properties = create_data_properties(document)       
-         
+
                 # Create a uuid based on the filename
-                data_properties["uuid5"] = generate_uuid5({ "filename": document.filename })
+                data_properties[UUID_FIELD] = generate_uuid5({"filename": document.filename})
 
                 # Embed the document
                 logger.info(f"Setting Embedding document [{document.filename}] {i+1} of {documents_length}")
                 data_properties["document_embedding"] = embedding_results[i]
+
 
                 documents.append(data_properties)
             except Exception as e:
@@ -242,6 +251,8 @@ def build_filter(queryRequest: QueryRequest) -> Optional[Filter]:
     # add type predicate
     if queryRequest.type is not None:
         predicates.append(Predicate(["type"], "Equal", queryRequest.type, FilterValueTypes.valueText))
+
+    predicates.append(Predicate(["isFound"], "Equal", False, FilterValueTypes.valueBoolean))
 
     # if there are predicates return and_ between them
     if (len(predicates) > 0):
