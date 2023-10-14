@@ -71,7 +71,7 @@ dog_class_definition = {
     }
 
 def hash_image(image):
-    return hashlib.md5(image)
+    return hashlib.md5(image.encode()).hexdigest()
 
 def generate_dog_id():
     return str(uuid.uuid4())
@@ -212,7 +212,7 @@ async def add_documents(documentRequest: DocumentRequest):
                 data_properties = create_data_properties(document, request_dog_id)
 
                 # Create a uuid based on the filename
-                data_properties[UUID_FIELD] = generate_uuid5({"breed": data_properties.breed, "type": data_properties.type, "imageHash": hash_image(data_properties.image)})
+                data_properties[UUID_FIELD] = generate_uuid5({"breed": document.breed, "type": document.type, "imageHash": hash_image(document.image)})
 
                 # Embed the document
                 logger.info(f"Setting Embedding document [{document.filename}] {i+1} of {documents_length}")
