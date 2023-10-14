@@ -1,3 +1,4 @@
+import hashlib
 from typing import Any, List, Optional
 from app.MyLogger import logger
 from app.models.api_response import APIResponse
@@ -62,6 +63,8 @@ dog_class_definition = {
         ]
     }
 
+def hash_image(image):
+    return hashlib.md5(image)
 
 
 # This is the request model for the add_documents endpoint
@@ -155,7 +158,7 @@ async def add_document(type: str = Form(...), breed: Optional[str] = Form(None),
             # Create the data object
             data_properties = create_data_properties(dogDocument)
             # Create a uuid based on the filename
-            data_properties[UUID_FIELD] = generate_uuid5({"filename": dogDocument.filename})
+            data_properties[UUID_FIELD] = generate_uuid5({"breed": dogDocument.breed, "type": dogDocument.type,"imageHash":hash_image(dogDocument.image)})
             data_properties["document_embedding"] = dog_embedding
 
             documents.append(data_properties)
@@ -198,7 +201,7 @@ async def add_documents(documentRequest: DocumentRequest):
                 data_properties = create_data_properties(document)
 
                 # Create a uuid based on the filename
-                data_properties[UUID_FIELD] = generate_uuid5({"filename": document.filename})
+                data_properties[UUID_FIELD] = generate_uuid5({"breed": data_properties.breed, "type": data_properties.type, "imageHash": hash_image(data_properties.image)})
 
                 # Embed the document
                 logger.info(f"Setting Embedding document [{document.filename}] {i+1} of {documents_length}")
