@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+PyJWT
 cachetools
 python-multipart
 weaviate-client
