@@ -122,7 +122,7 @@ async def startup_event():
     global vecotrDBClient
 
     # Create the vector db client, connecting to the weaviate instance
-    vecotrDBClient = WeaviateVectorDBClient(url=f"http://{os.getenv('WEAVIATE_HOST', 'localhost')}:{os.getenv('WEAVIATE_PORT', '8080')}")
+    vecotrDBClient = WeaviateVectorDBClient(url=f"{os.getenv('WEAVIATE_HOST', 'http://localhost:8080')}")
 
     # Create the schema
     vecotrDBClient.create_schema(class_name="Dog", class_obj=dog_class_definition)
