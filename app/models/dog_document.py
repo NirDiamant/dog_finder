@@ -9,6 +9,7 @@ class DogDocument(BaseModel):
     type: str
     breed: Optional[str] = None
     isFound: bool = False
+    isVerified: bool = False
     # Contact details like name, phone, email, address
     contactName: Optional[str] = None
     contactPhone: Optional[str] = None
