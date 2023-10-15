@@ -43,34 +43,36 @@ class UnauthenticatedException(HTTPException):
 
 
 class VerifyToken:
-    """Does all the token verification using PyJWT"""
-
     def __init__(self):
+        # Fetch Auth0 configuration data
         self.config = get_auth0_config()
 
-        # This gets the JWKS from a given URL and does processing so you can
-        # use any of the keys available
+        # Construct the JWKS URL from the provided domain in the Auth0 config
         jwks_url = f'https://{self.config["DOMAIN"]}/.well-known/jwks.json'
+        # Create a JWK client to fetch the signing keys for JWT verification
         self.jwks_client = jwt.PyJWKClient(jwks_url)
 
     async def verify(self,
                      security_scopes: SecurityScopes,
                      token: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer())
                      ):
+        # If no token is provided, raise an exception indicating lack of authentication
         if token is None:
             raise UnauthenticatedException
 
-        # This gets the 'kid' from the passed token
         try:
+            # Fetch the signing key associated with the provided JWT
             signing_key = self.jwks_client.get_signing_key_from_jwt(
                 token.credentials
             ).key
+        # Handle exceptions related to JWKS client or JWT decoding errors
         except jwt.exceptions.PyJWKClientError as error:
             raise UnauthorizedException(str(error))
         except jwt.exceptions.DecodeError as error:
             raise UnauthorizedException(str(error))
 
         try:
+            # Decode and verify the JWT using the fetched signing key
             payload = jwt.decode(
                 token.credentials,
                 signing_key,
@@ -78,23 +80,29 @@ class VerifyToken:
                 audience=self.config["API_AUDIENCE"],
                 issuer=self.config["ISSUER"],
             )
+        # Handle exceptions related to JWT decoding
         except Exception as error:
             raise UnauthorizedException(str(error))
 
+        # Check if there are any specific security scopes to verify
         if len(security_scopes.scopes) > 0:
             self._check_claims(payload, 'scope', security_scopes.scopes)
 
         return payload
 
     def _check_claims(self, payload, claim_name, expected_value):
+        # Check if the specified claim is present in the JWT payload
         if claim_name not in payload:
             raise UnauthorizedException(detail=f'No claim "{claim_name}" found in token')
 
+        # Extract the value of the claim from the JWT payload
         payload_claim = payload[claim_name]
 
+        # If the claim we are checking is 'scope', split the string to get individual scopes
         if claim_name == 'scope':
             payload_claim = payload[claim_name].split(' ')
 
+        # Verify each expected value against the JWT's claims
         for value in expected_value:
             if value not in payload_claim:
                 raise UnauthorizedException(detail=f'Missing "{claim_name}" scope')
