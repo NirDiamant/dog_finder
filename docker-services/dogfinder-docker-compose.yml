@@ -37,7 +37,7 @@ services:
     restart: on-failure:0
     environment:
       AI_MODULES: 'dogfinder'
-      WEAVIATE_HOST: 'weaviate'
+      WEAVIATE_HOST: 'http://weaviate:8080'
       SENTENCE_TRANSFORMER_EMBEDDING_MODEL_NAME: 'clip-ViT-B-32'
     # add volume to persist data
     volumes:
