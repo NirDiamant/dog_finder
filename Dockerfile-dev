@@ -4,7 +4,7 @@ WORKDIR /app
 
 # torch CPU
 # ----------------------
-RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+RUN pip install torch torchvision
 
 # sentence transformers deps
 # ----------------------
