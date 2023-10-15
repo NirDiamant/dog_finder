@@ -1,6 +1,7 @@
 import hashlib
 import uuid
 from typing import Any, List, Optional
+from enum import Enum
 from app.MyLogger import logger
 from app.models.api_response import APIResponse
 from fastapi import APIRouter, File, Form, UploadFile
@@ -97,6 +98,10 @@ def generate_dog_id():
     return str(uuid.uuid4())
 
 
+class DogType(Enum):
+    FOUND="found"
+    LOST="lost"
+
 # This is the request model for the add_documents endpoint
 class DocumentRequest(BaseModel):
     documents: List[DogDocument]
@@ -108,6 +113,11 @@ class QueryRequest(BaseModel):
     breed: Optional[str] = None
     top: int = 10
     return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress"]
+    
+    def __init__(self, **data):
+        # Make sure the query holds the correct type before querying the VDB
+        data["type"] = DogType.LOST.value if data["type"] == DogType.FOUND.value else DogType.FOUND.value
+        super().__init__(**data)
 
 class DogFoundRequest(BaseModel):
     dogId: str
