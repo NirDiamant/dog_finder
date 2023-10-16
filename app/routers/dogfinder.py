@@ -31,6 +31,9 @@ IS_FOUND_FIELD = "isFound"
 UUID_FIELD = "uuid5"
 DOG_ID_FIELD = "dogId"
 
+# CHANGE THIS TO FALSE ON PRODUCTION
+IS_VERIFIED_FIELD_DEFAULT_VALUE = True
+
 dog_class_definition = {
         "class": "Dog",
         "invertedIndexConfig": {
@@ -87,6 +90,11 @@ dog_class_definition = {
                 "name": "contactAddress",
                 "dataType": ["text"],
                 "description": "Contact address"
+            },
+            {
+                "name": "isVerified",
+                "dataType": ["boolean"],
+                "description": "is the dog entry verified?"
             }
         ]
     }
@@ -112,7 +120,8 @@ class QueryRequest(BaseModel):
     image: str
     breed: Optional[str] = None
     top: int = 10
-    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress"]
+    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified"]
+    isVerified: Optional[bool] = True
     
     def __init__(self, **data):
         # Make sure the query holds the correct type before querying the VDB
@@ -141,7 +150,7 @@ async def startup_event():
 
 
 @router.post("/query/", response_model=APIResponse)
-async def query(query: Optional[str] = Form(None), type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10)):
+async def query(query: Optional[str] = Form(None), type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10), isVerified: Optional[bool] = Form(True)):
     try:
         # Get file from UploadFile and convert it to Base64Str
         img_content = img.file.read()
@@ -149,7 +158,7 @@ async def query(query: Optional[str] = Form(None), type: DogType = Form(...), br
         query_image = create_pil_image(img_base64)
 
         # Create QueryRequest
-        queryRequest = QueryRequest(type=type.value, breed=breed, image=img_base64, top=top)
+        queryRequest = QueryRequest(type=type.value, breed=breed, image=img_base64, top=top, isVerified=isVerified)
 
         # Create the embedding model
         logger.info(f"Creating embedding model")
@@ -187,7 +196,7 @@ async def add_document(type: DogType = Form(...), breed: Optional[str] = Form(No
         document_image = create_pil_image(img_base64)
 
         # Create DogDocument
-        dogDocument = DogDocument(type=type.value, breed=breed, image=img_base64, filename=img.filename, contactName=contactName, contactPhone=contactPhone, contactEmail=contactEmail, contactAddress=contactAddress)
+        dogDocument = DogDocument(type=type.value, breed=breed, image=img_base64, filename=img.filename, contactName=contactName, contactPhone=contactPhone, contactEmail=contactEmail, contactAddress=contactAddress, isVerified=IS_VERIFIED_FIELD_DEFAULT_VALUE)
 
         # Create the embedding model
         logger.info(f"Creating embedding model")
@@ -233,6 +242,10 @@ async def add_documents(documentRequest: DocumentRequest):
         logger.info(f"Creating embedding model")
         embedding_model, cache_info = create_embedding_model()
 
+        # Set every new document to not verified
+        for document in documentRequest.documents:
+            document.isVerified = IS_VERIFIED_FIELD_DEFAULT_VALUE
+
         # Embed the documents images
         embedding_results = embed_documents([create_pil_image(document.image) for document in documentRequest.documents], embedding_model)
         request_dog_id = generate_dog_id()
@@ -266,6 +279,27 @@ async def add_documents(documentRequest: DocumentRequest):
     finally:
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
+# Add an endpoint to set isVerified to True
+@router.post("/verify_document", response_model=APIResponse)
+async def verify_document(dogId: str):
+    logger.info(f"Verify document: {dogId}")
+
+    try:
+        # Add the documents to the database
+        logger.info(f"Verify document")
+        result = vecotrDBClient.update_document("Dog", dogId, {
+            "isVerified": True,
+        })
+
+        api_response = APIResponse(status_code=200, message=f"Verified document in the vecotrdb", data=result)
+    except Exception as e:
+        logger.error(f"Error while verifying document in the vecotrdb: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while verifying document in the vecotrdb: {e}")
+    finally:
+        # return back a json response and set the status code to api_response.status_code
+        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
 
 @router.get("/get_schema")
 async def get_schema(class_name: str):
@@ -314,6 +348,11 @@ def build_filter(queryRequest: QueryRequest) -> Optional[Filter]:
     if queryRequest.type is not None:
         predicates.append(Predicate(["type"], "Equal", queryRequest.type, FilterValueTypes.valueText))
 
+    # add isVerified predicate
+    if queryRequest.isVerified is not None:
+        predicates.append(Predicate(["isVerified"], "Equal", queryRequest.isVerified, FilterValueTypes.valueBoolean))
+
+    # add isFound predicate, we only want to return dogs that are not found
     predicates.append(Predicate(["isFound"], "Equal", False, FilterValueTypes.valueBoolean))
 
     # if there are predicates return and_ between them
