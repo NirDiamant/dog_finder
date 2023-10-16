@@ -1,8 +1,8 @@
 import hashlib
 import uuid
+from app.models.dog_document import DogType
 from app.services.auth import VerifyToken
 from typing import Any, List, Optional
-from enum import Enum
 from app.MyLogger import logger
 from app.models.api_response import APIResponse
 from fastapi import APIRouter, File, Form, Security, UploadFile
@@ -106,35 +106,21 @@ def hash_image(image):
 def generate_dog_id():
     return str(uuid.uuid4())
 
-
-class DogType(Enum):
-    FOUND="found"
-    LOST="lost"
-
 # This is the request model for the add_documents endpoint
 class DocumentRequest(BaseModel):
     documents: List[DogDocument]
 
 # This is the request model for the query endpoint
 class QueryRequest(BaseModel):
-    type: str
+    type: DogType
     image: str
     breed: Optional[str] = None
     top: int = 10
     return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified"]
     isVerified: Optional[bool] = True
-    
-    def __init__(self, **data):
-        # Make sure the query holds the correct type before querying the VDB
-        logger.info("Received dog type `%s` in the request", data["type"])
-        data["type"] = DogType.LOST.value if data["type"] == DogType.FOUND.value else DogType.FOUND.value
-        logger.info("Changed to dog type `%s` for querying the VDB", data["type"])
-        super().__init__(**data)
 
 class DogFoundRequest(BaseModel):
     dogId: str
-
-
 
 @router.on_event("startup")
 async def startup_event():
@@ -150,43 +136,28 @@ async def startup_event():
     vecotrDBClient.create_schema(class_name="Dog", class_obj=dog_class_definition)
 
 
-
-
 auth = VerifyToken()
 
 @router.get("/private")
 def private(auth_result: str = Security(auth.verify)):
     return auth_result
 
-
 @router.get("/private-scoped")
 def private_scoped(auth_result: str = Security(auth.verify, scopes=['read:dogs'])):
     return auth_result
 
 @router.post("/query/", response_model=APIResponse)
-async def query(query: Optional[str] = Form(None), type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10), isVerified: Optional[bool] = Form(True)):
+async def query(type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10), isVerified: Optional[bool] = Form(True)):
     try:
         # Get file from UploadFile and convert it to Base64Str
         img_content = img.file.read()
         img_base64 = get_base64(img_content)
-        query_image = create_pil_image(img_base64)
 
         # Create QueryRequest
-        queryRequest = QueryRequest(type=type.value, breed=breed, image=img_base64, top=top, isVerified=isVerified)
-
-        # Create the embedding model
-        logger.info(f"Creating embedding model")
-        embedding_model, cache_info = create_embedding_model()
-
-        # Embed the query image
-        query_embedding = embed_query(query_image, embedding_model)
-
-        # Build the filter with conditions to query the vector db
-        filter = build_filter(queryRequest)
+        queryRequest = QueryRequest(type=type, breed=breed, image=img_base64, top=top, isVerified=isVerified)
 
         # Query the database
-        logger.info(f"Querying the database")
-        results = vecotrDBClient.query(class_name="Dog", query=query, query_embedding=query_embedding, limit=queryRequest.top, offset=None, filter=filter.to_dict(), properties=queryRequest.return_properties)
+        results = query_vector_db(queryRequest, query)
 
         api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
     except Exception as e:
@@ -195,6 +166,68 @@ async def query(query: Optional[str] = Form(None), type: DogType = Form(...), br
     finally:
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
+@router.post("/search_found_dogs/", response_model=APIResponse)
+async def search_found_dogs(breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10)):
+    try:
+        # Get file from UploadFile and convert it to Base64Str
+        img_content = img.file.read()
+        img_base64 = get_base64(img_content)
+
+        # Create QueryRequest
+        queryRequest = QueryRequest(type=DogType.FOUND, breed=breed, image=img_base64, top=top, isVerified=True)
+
+        # Query the database
+        results = query_vector_db(queryRequest, query)
+
+        api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
+    except Exception as e:
+        logger.error(f"Error while querying the vecotrdb: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while querying the vecotrdb: {e}", data={ "total": 0, "results": [] })
+    finally:
+        # return back a json response and set the status code to api_response.status_code
+        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
+@router.post("/search_lost_dogs/", response_model=APIResponse)
+async def search_lost_dogs(breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10)):
+    try:
+        # Get file from UploadFile and convert it to Base64Str
+        img_content = img.file.read()
+        img_base64 = get_base64(img_content)
+
+        # Create QueryRequest
+        queryRequest = QueryRequest(type=DogType.LOST, breed=breed, image=img_base64, top=top, isVerified=True)
+
+        # Query the database
+        results = query_vector_db(queryRequest, query)
+
+        api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
+    except Exception as e:
+        logger.error(f"Error while querying the vecotrdb: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while querying the vecotrdb: {e}", data={ "total": 0, "results": [] })
+    finally:
+        # return back a json response and set the status code to api_response.status_code
+        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
+def query_vector_db(queryRequest: QueryRequest, query: Optional[str] = None):
+    # Create the embedding model
+    logger.info(f"Creating embedding model")
+    embedding_model, cache_info = create_embedding_model()
+
+    # Open the image from the base64 string to PIL Image
+    query_image = create_pil_image(queryRequest.image)
+
+    # Embed the query image
+    query_embedding = embed_query(query_image, embedding_model)
+
+    # Build the filter with conditions to query the vector db
+    filter = build_filter(queryRequest)
+
+    # Query the database
+    logger.info(f"Querying the database")
+    results = vecotrDBClient.query(class_name="Dog", query=query, query_embedding=query_embedding, limit=queryRequest.top, offset=None, filter=filter.to_dict(), properties=queryRequest.return_properties)
+
+    return results
 
 @router.post("/add_document", response_model=APIResponse)
 async def add_document(type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), contactName: Optional[str] = Form(None), contactPhone: Optional[str] = Form(None), contactEmail: Optional[str] = Form(None), contactAddress: Optional[str] = Form(None)):
@@ -360,7 +393,7 @@ def build_filter(queryRequest: QueryRequest) -> Optional[Filter]:
 
     # add type predicate
     if queryRequest.type is not None:
-        predicates.append(Predicate(["type"], "Equal", queryRequest.type, FilterValueTypes.valueText))
+        predicates.append(Predicate(["type"], "Equal", queryRequest.type.value, FilterValueTypes.valueText))
 
     # add isVerified predicate
     if queryRequest.isVerified is not None:
