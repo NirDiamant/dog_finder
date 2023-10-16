@@ -116,7 +116,9 @@ class QueryRequest(BaseModel):
     
     def __init__(self, **data):
         # Make sure the query holds the correct type before querying the VDB
+        logger.info("Received dog type `%s` in the request", data["type"])
         data["type"] = DogType.LOST.value if data["type"] == DogType.FOUND.value else DogType.FOUND.value
+        logger.info("Changed to dog type `%s` for querying the VDB", data["type"])
         super().__init__(**data)
 
 class DogFoundRequest(BaseModel):
@@ -139,7 +141,7 @@ async def startup_event():
 
 
 @router.post("/query/", response_model=APIResponse)
-async def query(query: Optional[str] = Form(None), type: str = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10)):
+async def query(query: Optional[str] = Form(None), type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10)):
     try:
         # Get file from UploadFile and convert it to Base64Str
         img_content = img.file.read()
@@ -147,7 +149,7 @@ async def query(query: Optional[str] = Form(None), type: str = Form(...), breed:
         query_image = create_pil_image(img_base64)
 
         # Create QueryRequest
-        queryRequest = QueryRequest(type=type, breed=breed, image=img_base64, top=top)
+        queryRequest = QueryRequest(type=type.value, breed=breed, image=img_base64, top=top)
 
         # Create the embedding model
         logger.info(f"Creating embedding model")
@@ -172,7 +174,7 @@ async def query(query: Optional[str] = Form(None), type: str = Form(...), breed:
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.post("/add_document", response_model=APIResponse)
-async def add_document(type: str = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), contactName: Optional[str] = Form(None), contactPhone: Optional[str] = Form(None), contactEmail: Optional[str] = Form(None), contactAddress: Optional[str] = Form(None)):
+async def add_document(type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), contactName: Optional[str] = Form(None), contactPhone: Optional[str] = Form(None), contactEmail: Optional[str] = Form(None), contactAddress: Optional[str] = Form(None)):
     # logger.info(f"Document Request: {documentRequest}")
 
     try:
@@ -185,7 +187,7 @@ async def add_document(type: str = Form(...), breed: Optional[str] = Form(None),
         document_image = create_pil_image(img_base64)
 
         # Create DogDocument
-        dogDocument = DogDocument(type=type, breed=breed, image=img_base64, filename=img.filename, contactName=contactName, contactPhone=contactPhone, contactEmail=contactEmail, contactAddress=contactAddress)
+        dogDocument = DogDocument(type=type.value, breed=breed, image=img_base64, filename=img.filename, contactName=contactName, contactPhone=contactPhone, contactEmail=contactEmail, contactAddress=contactAddress)
 
         # Create the embedding model
         logger.info(f"Creating embedding model")
