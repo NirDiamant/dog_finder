@@ -33,7 +33,7 @@ UUID_FIELD = "uuid5"
 DOG_ID_FIELD = "dogId"
 
 # CHANGE THIS TO FALSE ON PRODUCTION
-IS_VERIFIED_FIELD_DEFAULT_VALUE = True
+IS_VERIFIED_FIELD_DEFAULT_VALUE = False
 
 dog_class_definition = {
         "class": "Dog",
@@ -208,6 +208,21 @@ async def search_lost_dogs(breed: Optional[str] = Form(None), img: UploadFile = 
     finally:
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
+@router.post("/get_unverified_documents/", response_model=APIResponse)
+async def get_unverified_documents():
+    try:
+        # Query the database
+        results = vecotrDBClient.query(class_name="Dog", query=None, query_embedding=None, limit=10000, offset=None, filter=and_(*[Predicate(["isVerified"], "Equal", False, FilterValueTypes.valueBoolean)]).to_dict(), properties=["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified"])
+
+        api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
+    except Exception as e:
+        logger.error(f"Error while querying the vecotrdb: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while querying the vecotrdb: {e}", data={ "total": 0, "results": [] })
+    finally:
+        # return back a json response and set the status code to api_response.status_code
+        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
 
 def query_vector_db(queryRequest: QueryRequest, query: Optional[str] = None):
     # Create the embedding model
