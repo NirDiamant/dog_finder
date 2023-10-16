@@ -1,6 +1,7 @@
 import hashlib
 import uuid
 from typing import Any, List, Optional
+from enum import Enum
 from app.MyLogger import logger
 from app.models.api_response import APIResponse
 from fastapi import APIRouter, File, Form, UploadFile
@@ -105,6 +106,10 @@ def generate_dog_id():
     return str(uuid.uuid4())
 
 
+class DogType(Enum):
+    FOUND="found"
+    LOST="lost"
+
 # This is the request model for the add_documents endpoint
 class DocumentRequest(BaseModel):
     documents: List[DogDocument]
@@ -117,6 +122,13 @@ class QueryRequest(BaseModel):
     top: int = 10
     return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified"]
     isVerified: Optional[bool] = True
+    
+    def __init__(self, **data):
+        # Make sure the query holds the correct type before querying the VDB
+        logger.info("Received dog type `%s` in the request", data["type"])
+        data["type"] = DogType.LOST.value if data["type"] == DogType.FOUND.value else DogType.FOUND.value
+        logger.info("Changed to dog type `%s` for querying the VDB", data["type"])
+        super().__init__(**data)
 
 class DogFoundRequest(BaseModel):
     dogId: str
@@ -138,7 +150,7 @@ async def startup_event():
 
 
 @router.post("/query/", response_model=APIResponse)
-async def query(query: Optional[str] = Form(None), type: str = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10), isVerified: Optional[bool] = Form(True)):
+async def query(query: Optional[str] = Form(None), type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10), isVerified: Optional[bool] = Form(True)):
     try:
         # Get file from UploadFile and convert it to Base64Str
         img_content = img.file.read()
@@ -146,7 +158,7 @@ async def query(query: Optional[str] = Form(None), type: str = Form(...), breed:
         query_image = create_pil_image(img_base64)
 
         # Create QueryRequest
-        queryRequest = QueryRequest(type=type, breed=breed, image=img_base64, top=top, isVerified=isVerified)
+        queryRequest = QueryRequest(type=type.value, breed=breed, image=img_base64, top=top, isVerified=isVerified)
 
         # Create the embedding model
         logger.info(f"Creating embedding model")
@@ -171,7 +183,7 @@ async def query(query: Optional[str] = Form(None), type: str = Form(...), breed:
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.post("/add_document", response_model=APIResponse)
-async def add_document(type: str = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), contactName: Optional[str] = Form(None), contactPhone: Optional[str] = Form(None), contactEmail: Optional[str] = Form(None), contactAddress: Optional[str] = Form(None)):
+async def add_document(type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), contactName: Optional[str] = Form(None), contactPhone: Optional[str] = Form(None), contactEmail: Optional[str] = Form(None), contactAddress: Optional[str] = Form(None)):
     # logger.info(f"Document Request: {documentRequest}")
 
     try:
@@ -184,7 +196,7 @@ async def add_document(type: str = Form(...), breed: Optional[str] = Form(None),
         document_image = create_pil_image(img_base64)
 
         # Create DogDocument
-        dogDocument = DogDocument(type=type, breed=breed, image=img_base64, filename=img.filename, contactName=contactName, contactPhone=contactPhone, contactEmail=contactEmail, contactAddress=contactAddress, isVerified=IS_VERIFIED_FIELD_DEFAULT_VALUE)
+        dogDocument = DogDocument(type=type.value, breed=breed, image=img_base64, filename=img.filename, contactName=contactName, contactPhone=contactPhone, contactEmail=contactEmail, contactAddress=contactAddress, isVerified=IS_VERIFIED_FIELD_DEFAULT_VALUE)
 
         # Create the embedding model
         logger.info(f"Creating embedding model")
