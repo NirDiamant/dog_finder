@@ -1,10 +1,11 @@
 import hashlib
 import uuid
+from app.services.auth import VerifyToken
 from typing import Any, List, Optional
 from enum import Enum
 from app.MyLogger import logger
 from app.models.api_response import APIResponse
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, File, Form, Security, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from app.helpers.model_helper import create_embedding_model
@@ -148,6 +149,19 @@ async def startup_event():
     # Create the schema
     vecotrDBClient.create_schema(class_name="Dog", class_obj=dog_class_definition)
 
+
+
+
+auth = VerifyToken()
+
+@router.get("/private")
+def private(auth_result: str = Security(auth.verify)):
+    return auth_result
+
+
+@router.get("/private-scoped")
+def private_scoped(auth_result: str = Security(auth.verify, scopes=['read:dogs'])):
+    return auth_result
 
 @router.post("/query/", response_model=APIResponse)
 async def query(query: Optional[str] = Form(None), type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10), isVerified: Optional[bool] = Form(True)):
