@@ -20,7 +20,7 @@ class DogDocument(BaseModel):
     image: str
     type: DogType
     breed: Optional[str] = None
-    isFound: bool = False
+    isMatched: bool = False
     isVerified: bool = False
     # Contact details like name, phone, email, address
     contactName: Optional[str] = None

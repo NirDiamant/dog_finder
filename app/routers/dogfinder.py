@@ -28,7 +28,7 @@ logger.info("Starting up the dogfinder router")
 router = APIRouter(prefix="/dogfinder")
 vecotrDBClient: IVectorDBClient
 
-IS_FOUND_FIELD = "isFound"
+IS_MATCHED_FIELD = "isMatched"
 UUID_FIELD = "uuid5"
 DOG_ID_FIELD = "dogId"
 
@@ -63,7 +63,7 @@ dog_class_definition = {
                 "description": "Image"
             },
             {
-                "name": IS_FOUND_FIELD,
+                "name": IS_MATCHED_FIELD,
                 "dataType": ["boolean"],
                 "description": "was the dog found?"
             },
@@ -121,7 +121,7 @@ class QueryRequest(BaseModel):
     image: str
     breed: Optional[str] = None
     top: int = 10
-    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
+    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
     isVerified: Optional[bool] = True
 
 class DogFoundRequest(BaseModel):
@@ -218,7 +218,7 @@ async def search_lost_dogs(breed: Optional[str] = Form(None), img: UploadFile = 
 async def get_unverified_documents():
     try:
         # Query the database
-        results = vecotrDBClient.query(class_name="Dog", query=None, query_embedding=None, limit=10000, offset=None, filter=and_(*[Predicate(["isVerified"], "Equal", False, FilterValueTypes.valueBoolean)]).to_dict(), properties=["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"])
+        results = vecotrDBClient.query(class_name="Dog", query=None, query_embedding=None, limit=10000, offset=None, filter=and_(*[Predicate(["isVerified"], "Equal", False, FilterValueTypes.valueBoolean)]).to_dict(), properties=["type", "breed", "filename", "image", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"])
 
         api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
     except Exception as e:
@@ -393,10 +393,10 @@ async def clean_all():
 async def doc_found(foundRequest: DogFoundRequest):
 
     vecotrDBClient.update_document("Dog", foundRequest.dogId,{
-                "isFound": True,
+                "isMatched": True,
             })
 
-    api_response = APIResponse(status_code=200, message=f"found dog marked", data={})
+    api_response = APIResponse(status_code=200, message=f"matched dog marked", data={})
     # return back a json response and set the status code to api_response.status_code
     return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
@@ -421,8 +421,8 @@ def build_filter(queryRequest: QueryRequest) -> Optional[Filter]:
     # if queryRequest.isVerified is not None:
     #     predicates.append(Predicate(["isVerified"], "Equal", queryRequest.isVerified, FilterValueTypes.valueBoolean))
 
-    # add isFound predicate, we only want to return dogs that are not found
-    predicates.append(Predicate(["isFound"], "Equal", False, FilterValueTypes.valueBoolean))
+    # add isMatched predicate, we only want to return dogs that are not found
+    predicates.append(Predicate([IS_MATCHED_FIELD], "Equal", False, FilterValueTypes.valueBoolean))
 
     # if there are predicates return and_ between them
     if (len(predicates) > 0):
