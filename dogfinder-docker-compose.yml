@@ -41,6 +41,7 @@ services:
       AI_MODULES: 'dogfinder'
       WEAVIATE_HOST: 'http://weaviate:8080'
       SENTENCE_TRANSFORMER_EMBEDDING_MODEL_NAME: 'clip-ViT-B-32'
+      ALLOWED_CORS: '*'
     # add volume to persist data
     volumes:
       - /usr/local/dogfinder/logs/:/var/log/dogfinder/
