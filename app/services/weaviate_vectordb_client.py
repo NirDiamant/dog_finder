@@ -161,7 +161,7 @@ class WeaviateVectorDBClient(IVectorDBClient):
             logger.info(f"Entering create_schema")
             # wrap with try catch to avoid error if the class already exists
             try:
-                if not self.client.schema.contains(class_obj):            
+                if not self.client.schema['classes'].contains(class_obj):            
                     logger.info(f"Creating the schema for class '{class_name}' with schema {class_obj} in the vectordb")
                     self.client.schema.create_class(class_obj)
                     logger.info(f"Schema for class '{class_name}' was created in the vectordb")
