@@ -27,6 +27,7 @@ class DogDocument(BaseModel):
     contactPhone: Optional[str] = None
     contactEmail: Optional[str] = None
     contactAddress: Optional[str] = None
+    imageContentType: str
 
     class Config:
         use_enum_values = True

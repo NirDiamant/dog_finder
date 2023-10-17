@@ -96,6 +96,11 @@ dog_class_definition = {
                 "name": "isVerified",
                 "dataType": ["boolean"],
                 "description": "is the dog entry verified?"
+            },
+            {
+                "name": "imageContentType",
+                "dataType": ["text"],
+                "description": "the image content type"
             }
         ]
     }
@@ -116,7 +121,7 @@ class QueryRequest(BaseModel):
     image: str
     breed: Optional[str] = None
     top: int = 10
-    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified"]
+    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
     isVerified: Optional[bool] = True
 
 class DogFoundRequest(BaseModel):
@@ -213,7 +218,7 @@ async def search_lost_dogs(breed: Optional[str] = Form(None), img: UploadFile = 
 async def get_unverified_documents():
     try:
         # Query the database
-        results = vecotrDBClient.query(class_name="Dog", query=None, query_embedding=None, limit=10000, offset=None, filter=and_(*[Predicate(["isVerified"], "Equal", False, FilterValueTypes.valueBoolean)]).to_dict(), properties=["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified"])
+        results = vecotrDBClient.query(class_name="Dog", query=None, query_embedding=None, limit=10000, offset=None, filter=and_(*[Predicate(["isVerified"], "Equal", False, FilterValueTypes.valueBoolean)]).to_dict(), properties=["type", "breed", "filename", "image", IS_FOUND_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"])
 
         api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
     except Exception as e:
@@ -253,12 +258,13 @@ async def add_document(type: DogType = Form(...), breed: Optional[str] = Form(No
         documents = []
 
         # Get file from UploadFile and convert it to Base64Str
+        img_content_type = img.content_type
         img_content = img.file.read()
         img_base64 = get_base64(img_content)
         document_image = create_pil_image(img_base64)
 
         # Create DogDocument
-        dogDocument = DogDocument(type=type.value, breed=breed, image=img_base64, filename=img.filename, contactName=contactName, contactPhone=contactPhone, contactEmail=contactEmail, contactAddress=contactAddress, isVerified=IS_VERIFIED_FIELD_DEFAULT_VALUE)
+        dogDocument = DogDocument(type=type.value, breed=breed, image=img_base64, filename=img.filename, contactName=contactName, contactPhone=contactPhone, contactEmail=contactEmail, contactAddress=contactAddress, isVerified=IS_VERIFIED_FIELD_DEFAULT_VALUE, imageContentType=img_content_type)
 
         # Create the embedding model
         logger.info(f"Creating embedding model")
