@@ -411,8 +411,9 @@ def build_filter(queryRequest: QueryRequest) -> Optional[Filter]:
         predicates.append(Predicate(["type"], "Equal", queryRequest.type.value, FilterValueTypes.valueText))
 
     # add isVerified predicate
-    if queryRequest.isVerified is not None:
-        predicates.append(Predicate(["isVerified"], "Equal", queryRequest.isVerified, FilterValueTypes.valueBoolean))
+    # Commented out because we want to return verified and unverified dogs for now until we have a way to verify them
+    # if queryRequest.isVerified is not None:
+    #     predicates.append(Predicate(["isVerified"], "Equal", queryRequest.isVerified, FilterValueTypes.valueBoolean))
 
     # add isFound predicate, we only want to return dogs that are not found
     predicates.append(Predicate(["isFound"], "Equal", False, FilterValueTypes.valueBoolean))
