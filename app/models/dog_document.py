@@ -14,13 +14,7 @@ from pydantic import BaseModel
 class DogType(str, Enum):
     FOUND: str = "found"
     LOST: str = "lost"
-    
-class DogDetails(BaseModel):
-    # I'm putting all of these as optional for now
-    breed: Optional[str] = None
-    color: Optional[str] = None
-    size: Optional[str] = None
-    extraDetails: Optional[str] = None
+
     
 class DogDocument(BaseModel):
     filename: str
@@ -34,7 +28,11 @@ class DogDocument(BaseModel):
     contactEmail: Optional[str] = None
     contactAddress: Optional[str] = None
     imageContentType: Optional[str] = None
-    dogDetails: Optional[DogDetails] = None
+    # I'm putting all of these as optional for now
+    breed: Optional[str] = None
+    color: Optional[str] = None
+    size: Optional[str] = None
+    extraDetails: Optional[str] = None
 
     class Config:
         use_enum_values = True

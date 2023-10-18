@@ -1,6 +1,6 @@
 import hashlib
 import uuid
-from app.models.dog_document import DogDetails, DogType
+from app.models.dog_document import DogType
 from app.services.auth import VerifyToken
 from typing import Any, List, Optional
 from app.MyLogger import logger
@@ -46,6 +46,21 @@ dog_class_definition = {
                 "name": "breed",
                 "dataType": ["text"],
                 "description": "Name of dog breed"
+            },
+            {
+                "name": "size",
+                "dataType": ["text"],
+                "description": "The dog's size"
+            },
+            {
+                "name": "color",
+                "dataType": ["text"],
+                "description": "The dog's color"
+            },
+            {
+                "name": "extraDetails",
+                "dataType": ["text"],
+                "description": "Any extra detail that can be returned to the user to identify the dog"
             },
             {
                 "name": "type",
@@ -121,7 +136,7 @@ class QueryRequest(BaseModel):
     image: str
     breed: Optional[str] = None
     top: int = 10
-    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
+    return_properties: Optional[List[str]] = ["type", "breed", "size", "color", "extraDetails", "filename", "image", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
     isVerified: Optional[bool] = True
 
 class DogFoundRequest(BaseModel):
@@ -281,7 +296,12 @@ async def add_document(type: DogType = Form(...),
                                   contactEmail=contactEmail, 
                                   contactAddress=contactAddress,
                                   isVerified=IS_VERIFIED_FIELD_DEFAULT_VALUE, 
-                                  imageContentType=img_content_type, dogDetails=DogDetails(breed=breed, size=size, color=color, extraDetails=extraDetails))
+                                  imageContentType=img_content_type, 
+                                  breed=breed, 
+                                  size=size, 
+                                  color=color, 
+                                  extraDetails=extraDetails
+                                  )
 
         # Create the embedding model
         logger.info(f"Creating embedding model")
