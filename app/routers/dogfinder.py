@@ -478,7 +478,6 @@ def create_data_properties(document: DogDocument, dog_id:str) -> dict[str, Any]:
             data_properties[key.lower()] = val.strftime("%Y-%m-%dT%H:%M:%S.%SZ") if val else None
 
     data_properties[DOG_ID_FIELD] = dog_id
-    logger.info("Dog details entered %s", data_properties)
 
     return data_properties
 
