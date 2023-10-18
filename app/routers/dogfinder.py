@@ -9,7 +9,7 @@ from fastapi import APIRouter, File, Form, Security, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from app.helpers.model_helper import create_embedding_model
-from app.helpers.helper import timeit
+from app.helpers.helper import detect_image_mimetype, timeit
 from app.helpers.weaviate_helper import FilterValueTypes
 from app.models import DogDocument
 from weaviate.util import generate_uuid5
@@ -116,12 +116,14 @@ class DocumentRequest(BaseModel):
     documents: List[DogDocument]
 
 # This is the request model for the query endpoint
+RETURN_PROPERTIES = ["type", "breed", "filename", "image", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
+
 class QueryRequest(BaseModel):
     type: DogType
     image: str
     breed: Optional[str] = None
     top: int = 10
-    return_properties: Optional[List[str]] = ["type", "breed", "filename", "image", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
+    return_properties: Optional[List[str]] = RETURN_PROPERTIES
     isVerified: Optional[bool] = True
 
 class DogFoundRequest(BaseModel):
@@ -218,7 +220,7 @@ async def search_lost_dogs(breed: Optional[str] = Form(None), img: UploadFile = 
 async def get_unverified_documents():
     try:
         # Query the database
-        results = vecotrDBClient.query(class_name="Dog", query=None, query_embedding=None, limit=10000, offset=None, filter=and_(*[Predicate(["isVerified"], "Equal", False, FilterValueTypes.valueBoolean)]).to_dict(), properties=["type", "breed", "filename", "image", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"])
+        results = vecotrDBClient.query(class_name="Dog", query=None, query_embedding=None, limit=10000, offset=None, filter=and_(*[Predicate(["isVerified"], "Equal", False, FilterValueTypes.valueBoolean)]).to_dict(), properties=RETURN_PROPERTIES)
 
         api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
     except Exception as e:
@@ -313,6 +315,8 @@ async def add_documents(documentRequest: DocumentRequest):
         # Set every new document to not verified
         for document in documentRequest.documents:
             document.isVerified = IS_VERIFIED_FIELD_DEFAULT_VALUE
+            # detect image content type
+            document.imageContentType = f"image/{detect_image_mimetype(document.image)}"
 
         # Embed the documents images
         embedding_results = embed_documents([create_pil_image(document.image) for document in documentRequest.documents], embedding_model)
@@ -434,7 +438,7 @@ def build_filter(queryRequest: QueryRequest) -> Optional[Filter]:
 def create_data_properties(document: DogDocument, dog_id:str) -> dict[str, Any]:
     # Transform document to dictionary
     data_properties = document.model_dump()
-
+    
     # Transform datetime objects to string
     for key, val in data_properties.items():
         if isinstance(val, datetime):

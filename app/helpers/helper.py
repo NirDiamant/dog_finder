@@ -4,6 +4,8 @@ import html
 import time
 import asyncio
 import functools
+import base64
+import imghdr
 
 def timeit(func):
     @functools.wraps(func)
@@ -28,3 +30,8 @@ def async_timeit(func):
         return result
 
     return wrapper
+
+def detect_image_mimetype(base64_str):
+    img_data = base64.b64decode(base64_str)
+    
+    return imghdr.what(None, img_data)
