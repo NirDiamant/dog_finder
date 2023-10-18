@@ -1,6 +1,6 @@
 import hashlib
 import uuid
-from app.models.dog_document import DogType
+from app.models.dog_document import DogDetails, DogType
 from app.services.auth import VerifyToken
 from typing import Any, List, Optional
 from app.MyLogger import logger
@@ -250,7 +250,16 @@ def query_vector_db(queryRequest: QueryRequest, query: Optional[str] = None):
     return results
 
 @router.post("/add_document", response_model=APIResponse)
-async def add_document(type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), contactName: Optional[str] = Form(None), contactPhone: Optional[str] = Form(None), contactEmail: Optional[str] = Form(None), contactAddress: Optional[str] = Form(None)):
+async def add_document(type: DogType = Form(...), 
+                       img: UploadFile = File(...), 
+                       breed: Optional[str] = Form(None), 
+                       size: Optional[str] = Form(None), 
+                       color: Optional[str] = Form(None), 
+                       extraDetails: Optional[str] = Form(None), 
+                       contactName: Optional[str] = Form(None), 
+                       contactPhone: Optional[str] = Form(None), 
+                       contactEmail: Optional[str] = Form(None), 
+                       contactAddress: Optional[str] = Form(None)):
     # logger.info(f"Document Request: {documentRequest}")
 
     try:
@@ -264,7 +273,15 @@ async def add_document(type: DogType = Form(...), breed: Optional[str] = Form(No
         document_image = create_pil_image(img_base64)
 
         # Create DogDocument
-        dogDocument = DogDocument(type=type.value, breed=breed, image=img_base64, filename=img.filename, contactName=contactName, contactPhone=contactPhone, contactEmail=contactEmail, contactAddress=contactAddress, isVerified=IS_VERIFIED_FIELD_DEFAULT_VALUE, imageContentType=img_content_type)
+        dogDocument = DogDocument(type=type.value,
+                                  image=img_base64, 
+                                  filename=img.filename, 
+                                  contactName=contactName, 
+                                  contactPhone=contactPhone, 
+                                  contactEmail=contactEmail, 
+                                  contactAddress=contactAddress,
+                                  isVerified=IS_VERIFIED_FIELD_DEFAULT_VALUE, 
+                                  imageContentType=img_content_type, dogDetails=DogDetails(breed=breed, size=size, color=color, extraDetails=extraDetails))
 
         # Create the embedding model
         logger.info(f"Creating embedding model")
@@ -441,6 +458,7 @@ def create_data_properties(document: DogDocument, dog_id:str) -> dict[str, Any]:
             data_properties[key.lower()] = val.strftime("%Y-%m-%dT%H:%M:%S.%SZ") if val else None
 
     data_properties[DOG_ID_FIELD] = dog_id
+    logger.info("Dog details entered %s", data_properties)
 
     return data_properties
 
