@@ -48,6 +48,21 @@ dog_class_definition = {
                 "description": "Name of dog breed"
             },
             {
+                "name": "size",
+                "dataType": ["text"],
+                "description": "The dog's size"
+            },
+            {
+                "name": "color",
+                "dataType": ["text"],
+                "description": "The dog's color"
+            },
+            {
+                "name": "extraDetails",
+                "dataType": ["text"],
+                "description": "Any extra detail that can be returned to the user to identify the dog"
+            },
+            {
                 "name": "type",
                 "dataType": ["text"],
                 "description": "Found Or Lost"
@@ -116,7 +131,7 @@ class DocumentRequest(BaseModel):
     documents: List[DogDocument]
 
 # This is the request model for the query endpoint
-RETURN_PROPERTIES = ["type", "breed", "filename", "image", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
+RETURN_PROPERTIES = ["type", "breed", "size", "color", "extraDetails", "filename", "image", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
 
 class QueryRequest(BaseModel):
     type: DogType
@@ -252,7 +267,16 @@ def query_vector_db(queryRequest: QueryRequest, query: Optional[str] = None):
     return results
 
 @router.post("/add_document", response_model=APIResponse)
-async def add_document(type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), contactName: Optional[str] = Form(None), contactPhone: Optional[str] = Form(None), contactEmail: Optional[str] = Form(None), contactAddress: Optional[str] = Form(None)):
+async def add_document(type: DogType = Form(...), 
+                       img: UploadFile = File(...), 
+                       breed: Optional[str] = Form(None), 
+                       size: Optional[str] = Form(None), 
+                       color: Optional[str] = Form(None), 
+                       extraDetails: Optional[str] = Form(None), 
+                       contactName: Optional[str] = Form(None), 
+                       contactPhone: Optional[str] = Form(None), 
+                       contactEmail: Optional[str] = Form(None), 
+                       contactAddress: Optional[str] = Form(None)):
     # logger.info(f"Document Request: {documentRequest}")
 
     try:
@@ -266,7 +290,20 @@ async def add_document(type: DogType = Form(...), breed: Optional[str] = Form(No
         document_image = create_pil_image(img_base64)
 
         # Create DogDocument
-        dogDocument = DogDocument(type=type.value, breed=breed, image=img_base64, filename=img.filename, contactName=contactName, contactPhone=contactPhone, contactEmail=contactEmail, contactAddress=contactAddress, isVerified=IS_VERIFIED_FIELD_DEFAULT_VALUE, imageContentType=img_content_type)
+        dogDocument = DogDocument(type=type.value,
+                                  image=img_base64, 
+                                  filename=img.filename, 
+                                  contactName=contactName, 
+                                  contactPhone=contactPhone, 
+                                  contactEmail=contactEmail, 
+                                  contactAddress=contactAddress,
+                                  isVerified=IS_VERIFIED_FIELD_DEFAULT_VALUE, 
+                                  imageContentType=img_content_type, 
+                                  breed=breed, 
+                                  size=size, 
+                                  color=color, 
+                                  extraDetails=extraDetails
+                                  )
 
         # Create the embedding model
         logger.info(f"Creating embedding model")
