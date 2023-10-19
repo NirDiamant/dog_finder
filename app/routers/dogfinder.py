@@ -231,11 +231,26 @@ async def search_lost_dogs(breed: Optional[str] = Form(None), img: UploadFile = 
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
-@router.post("/get_unverified_documents/", response_model=APIResponse)
+@router.get("/get_unverified_documents/", response_model=APIResponse)
 async def get_unverified_documents():
     try:
         # Query the database
         results = vecotrDBClient.query(class_name="Dog", query=None, query_embedding=None, limit=10000, offset=None, filter=and_(*[Predicate(["isVerified"], "Equal", False, FilterValueTypes.valueBoolean)]).to_dict(), properties=RETURN_PROPERTIES)
+
+        api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
+    except Exception as e:
+        logger.error(f"Error while querying the vecotrdb: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while querying the vecotrdb: {e}", data={ "total": 0, "results": [] })
+    finally:
+        # return back a json response and set the status code to api_response.status_code
+        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+    
+# Endpoint for quering the database without the need for a query image, only DOG_ID_FIELD
+@router.get("/query_by_dog_id/", response_model=APIResponse)
+async def query_by_dog_id(dogId: str):
+    try:
+        # Query the database
+        results = vecotrDBClient.query(class_name="Dog", query=None, query_embedding=None, limit=1, offset=None, filter=and_(*[Predicate([DOG_ID_FIELD], "Equal", dogId, FilterValueTypes.valueText)]).to_dict(), properties=RETURN_PROPERTIES)
 
         api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
     except Exception as e:
