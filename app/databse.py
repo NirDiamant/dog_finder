@@ -123,30 +123,29 @@ def get_connection_string(user: str, password: str, host: str, port: int = 5432,
         return f'{protocol}://{user}:{password}@{host}:{port}/{db}'
 
 
-def main():
-    # Create DB connection
-    db_connection_string = get_connection_string(user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT,
-                                                 db=DB_NAME, protocol=DB_PROTOCOL)
-    engine = create_engine(url=db_connection_string, echo=True)
+# def main():
+#     # Create DB connection
+#     db_connection_string = get_connection_string(user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT,
+#                                                  db=DB_NAME, protocol=DB_PROTOCOL)
+#     engine = create_engine(url=db_connection_string, echo=True)
 
-    # Drop existing db if exists
-    if database_exists(engine.url):
-        drop_database(engine.url)
+#     # Drop existing db if exists
+#     if database_exists(engine.url):
+#         drop_database(engine.url)
 
-    # Create new db if not exists
-    if not database_exists(engine.url):
-        create_database(engine.url)
+#     # Create new db if not exists
+#     if not database_exists(engine.url):
+#         create_database(engine.url)
 
-    # Open session
-    Session = sessionmaker(bind=engine)
-    session = Session()
+#     # Open session
+#     Session = sessionmaker(bind=engine)
+#     session = Session()
 
-    # Create the database tables
-    Base.metadata.create_all(engine)
+#     # Create the database tables
+#     Base.metadata.create_all(engine)
 
-    # Insert examples
-    add_examples(session)
+#     # Insert examples
+#     add_examples(session)
 
-
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
