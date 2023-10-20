@@ -11,7 +11,7 @@ DB_USER = os.environ.get("DB_USER")
 DB_PASSWORD = os.environ.get("DB_PASSWORD")
 DB_HOST = os.environ.get("DB_HOST")
 DB_PORT = os.environ.get("DB_PORT")
-DB_NAME = os.environ.get("DB_NAME")
+DB_NAME = os.environ.get("DB_NAME", 'dogfinder')
 DB_PROTOCOL = os.environ.get("DB_PROTOCOL", "sqlite")
 
 
@@ -115,9 +115,10 @@ def add_examples(session):
     session.commit()
 
 
-def get_connection_string(user, password, host, port=5432, db='dogfinder', protocol='postgresql'):
+def get_connection_string(user: str, password: str, host: str, port: int = 5432, db: str = 'dogfinder',
+                          protocol: str = 'postgresql') -> str:
     if protocol == 'sqlite':
-        return f"sqlite:///localhost/{db}.db"
+        return f"sqlite:///{db}.db"
     else:
         return f'{protocol}://{user}:{password}@{host}:{port}/{db}'
 

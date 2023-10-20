@@ -57,6 +57,11 @@ dog_class_definition = {
                 "dataType": ["text"],
                 "description": "The dog's color"
             },
+{
+                "name": "sex",
+                "dataType": ["text"],
+                "description": "The dog's sex"
+            },
             {
                 "name": "extraDetails",
                 "dataType": ["text"],
@@ -131,7 +136,7 @@ class DocumentRequest(BaseModel):
     documents: List[DogDocument]
 
 # This is the request model for the query endpoint
-RETURN_PROPERTIES = ["type", "breed", "size", "color", "extraDetails", "filename", "imageBase64", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
+RETURN_PROPERTIES = ["type", "breed", "size", "color", "sex", "extraDetails", "filename", "imageBase64", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
 
 class QueryRequest(BaseModel):
     type: DogType
@@ -283,7 +288,8 @@ async def add_document(type: DogType = Form(...),
                        img: UploadFile = File(...), 
                        breed: Optional[str] = Form(None), 
                        size: Optional[str] = Form(None), 
-                       color: Optional[str] = Form(None), 
+                       color: Optional[str] = Form(None),
+                       sex: Optional[str] = Form(None),
                        extraDetails: Optional[str] = Form(None), 
                        contactName: Optional[str] = Form(None), 
                        contactPhone: Optional[str] = Form(None), 
@@ -313,7 +319,8 @@ async def add_document(type: DogType = Form(...),
                                   imageContentType=img_content_type, 
                                   breed=breed, 
                                   size=size, 
-                                  color=color, 
+                                  color=color,
+                                  sex=sex,
                                   extraDetails=extraDetails
                                   )
 
