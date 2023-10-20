@@ -18,7 +18,7 @@ class DogType(str, Enum):
     
 class DogDocument(BaseModel):
     filename: str
-    image: str
+    imageBase64: str
     type: DogType
     isMatched: bool = False
     isVerified: bool = False

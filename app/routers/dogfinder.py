@@ -9,7 +9,7 @@ from fastapi import APIRouter, File, Form, Security, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from app.helpers.model_helper import create_embedding_model
-from app.helpers.helper import detect_image_mimetype, timeit
+from app.helpers.helper import detect_image_mimetype, resize_image_and_convert_to_format, timeit
 from app.helpers.weaviate_helper import FilterValueTypes
 from app.models import DogDocument
 from weaviate.util import generate_uuid5
@@ -73,9 +73,9 @@ dog_class_definition = {
                 "description": "Uploaded filename"
             },
             {
-                "name": "image",
+                "name": "imageBase64",
                 "dataType": ["blob"],
-                "description": "Image"
+                "description": "Image in base64 format"
             },
             {
                 "name": IS_MATCHED_FIELD,
@@ -131,11 +131,11 @@ class DocumentRequest(BaseModel):
     documents: List[DogDocument]
 
 # This is the request model for the query endpoint
-RETURN_PROPERTIES = ["type", "breed", "size", "color", "extraDetails", "filename", "image", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
+RETURN_PROPERTIES = ["type", "breed", "size", "color", "extraDetails", "filename", "imageBase64", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
 
 class QueryRequest(BaseModel):
     type: DogType
-    image: str
+    imageBase64: str
     breed: Optional[str] = None
     top: int = 10
     return_properties: Optional[List[str]] = RETURN_PROPERTIES
@@ -171,12 +171,11 @@ def private_scoped(auth_result: str = Security(auth.verify, scopes=['read:dogs']
 @router.post("/query/", response_model=APIResponse)
 async def query(type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10), isVerified: Optional[bool] = Form(True)):
     try:
-        # Get file from UploadFile and convert it to Base64Str
-        img_content = img.file.read()
-        img_base64 = get_base64(img_content)
+        # Handle the image, resize it and convert it to base64 with webp format and get the content type
+        img_base64, img_content_type = handle_uploaded_image(img)
 
         # Create QueryRequest
-        queryRequest = QueryRequest(type=type, breed=breed, image=img_base64, top=top, isVerified=isVerified)
+        queryRequest = QueryRequest(type=type, breed=breed, imageBase64=img_base64, top=top, isVerified=isVerified)
 
         # Query the database
         results = query_vector_db(queryRequest, query)
@@ -192,12 +191,11 @@ async def query(type: DogType = Form(...), breed: Optional[str] = Form(None), im
 @router.post("/search_found_dogs/", response_model=APIResponse)
 async def search_found_dogs(breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10)):
     try:
-        # Get file from UploadFile and convert it to Base64Str
-        img_content = img.file.read()
-        img_base64 = get_base64(img_content)
+        # Handle the image, resize it and convert it to base64 with webp format and get the content type
+        img_base64, img_content_type = handle_uploaded_image(img)
 
         # Create QueryRequest
-        queryRequest = QueryRequest(type=DogType.FOUND, breed=breed, image=img_base64, top=top, isVerified=True)
+        queryRequest = QueryRequest(type=DogType.FOUND, breed=breed, imageBase64=img_base64, top=top, isVerified=True)
 
         # Query the database
         results = query_vector_db(queryRequest, query)
@@ -213,12 +211,11 @@ async def search_found_dogs(breed: Optional[str] = Form(None), img: UploadFile =
 @router.post("/search_lost_dogs/", response_model=APIResponse)
 async def search_lost_dogs(breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10)):
     try:
-        # Get file from UploadFile and convert it to Base64Str
-        img_content = img.file.read()
-        img_base64 = get_base64(img_content)
+        # Handle the image, resize it and convert it to base64 with webp format and get the content type
+        img_base64, img_content_type = handle_uploaded_image(img)
 
         # Create QueryRequest
-        queryRequest = QueryRequest(type=DogType.LOST, breed=breed, image=img_base64, top=top, isVerified=True)
+        queryRequest = QueryRequest(type=DogType.LOST, breed=breed, imageBase64=img_base64, top=top, isVerified=True)
 
         # Query the database
         results = query_vector_db(queryRequest, query)
@@ -267,7 +264,7 @@ def query_vector_db(queryRequest: QueryRequest, query: Optional[str] = None):
     embedding_model, cache_info = create_embedding_model()
 
     # Open the image from the base64 string to PIL Image
-    query_image = create_pil_image(queryRequest.image)
+    query_image = create_pil_image(queryRequest.imageBase64)
 
     # Embed the query image
     query_embedding = embed_query(query_image, embedding_model)
@@ -298,15 +295,15 @@ async def add_document(type: DogType = Form(...),
         # Add the document to the database
         documents = []
 
-        # Get file from UploadFile and convert it to Base64Str
-        img_content_type = img.content_type
-        img_content = img.file.read()
-        img_base64 = get_base64(img_content)
+        # Handle the image, resize it and convert it to base64 with webp format and get the content type
+        img_base64, img_content_type = handle_uploaded_image(img)
+
+        # Create a PIL Image from the base64 string
         document_image = create_pil_image(img_base64)
 
         # Create DogDocument
         dogDocument = DogDocument(type=type.value,
-                                  image=img_base64, 
+                                  imageBase64=img_base64, 
                                   filename=img.filename, 
                                   contactName=contactName, 
                                   contactPhone=contactPhone, 
@@ -331,7 +328,7 @@ async def add_document(type: DogType = Form(...),
             # Create the data object
             data_properties = create_data_properties(dogDocument, generate_dog_id())
             # Create a uuid based on the filename
-            data_properties[UUID_FIELD] = generate_uuid5({"breed": dogDocument.breed, "type": dogDocument.type,"imageHash":hash_image(dogDocument.image)})
+            data_properties[UUID_FIELD] = generate_uuid5({"breed": dogDocument.breed, "type": dogDocument.type,"imageHash":hash_image(dogDocument.imageBase64)})
             data_properties["document_embedding"] = dog_embedding
 
             documents.append(data_properties)
@@ -367,11 +364,10 @@ async def add_documents(documentRequest: DocumentRequest):
         # Set every new document to not verified
         for document in documentRequest.documents:
             document.isVerified = IS_VERIFIED_FIELD_DEFAULT_VALUE
-            # detect image content type
-            document.imageContentType = f"image/{detect_image_mimetype(document.image)}"
+            document.imageBase64, document.imageContentType = resize_image_and_convert_to_format(document.imageBase64, (500, 500))
 
         # Embed the documents images
-        embedding_results = embed_documents([create_pil_image(document.image) for document in documentRequest.documents], embedding_model)
+        embedding_results = embed_documents([create_pil_image(document.imageBase64) for document in documentRequest.documents], embedding_model)
         request_dog_id = generate_dog_id()
 
         # Iterate over the documents and add them to the database
@@ -381,7 +377,7 @@ async def add_documents(documentRequest: DocumentRequest):
                 data_properties = create_data_properties(document, request_dog_id)
 
                 # Create a uuid based on the filename
-                data_properties[UUID_FIELD] = generate_uuid5({"breed": document.breed, "type": document.type, "imageHash": hash_image(document.image)})
+                data_properties[UUID_FIELD] = generate_uuid5({"breed": document.breed, "type": document.type, "imageHash": hash_image(document.imageBase64)})
 
                 # Embed the document
                 logger.info(f"Setting Embedding document [{document.filename}] {i+1} of {documents_length}")
@@ -542,3 +538,25 @@ def _json_serializable(value: Any) -> Any:
     if isinstance(value, datetime.datetime):
         return value.isoformat()
     return value
+
+def handle_uploaded_image(img):
+    """
+    This function takes an uploaded image and returns a resized and converted image in base64 format and its content type.
+
+    Args:
+        img: An uploaded image.
+
+    Returns:
+        A tuple containing the resized and converted image in base64 format and its content type.
+    """
+    # Read the image content from the uploaded file
+    img_content = img.file.read()
+
+    # Convert the image content to base64 format
+    img_base64 = get_base64(img_content)
+
+    # Resize the image and convert it to the desired format
+    img_base64, img_content_type = resize_image_and_convert_to_format(img_base64, (500, 500))
+
+    # Return the resized and converted image and its content type
+    return img_base64, img_content_type
