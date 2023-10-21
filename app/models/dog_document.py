@@ -33,6 +33,8 @@ class DogDocument(BaseModel):
     color: Optional[str] = None
     size: Optional[str] = None
     extraDetails: Optional[str] = None
+    chipNumber: Optional[str] = None
+    location: Optional[str] = None
 
     class Config:
         use_enum_values = True
