@@ -563,7 +563,7 @@ def handle_uploaded_image(img):
     img_base64 = get_base64(img_content)
 
     # Resize the image and convert it to the desired format
-    img_base64, img_content_type = resize_image_and_convert_to_format(img_base64, (500, 500))
+    img_base64, img_content_type = resize_image_and_convert_to_format(img_base64, (1024, 1024))
 
     # Return the resized and converted image and its content type
     return img_base64, img_content_type
