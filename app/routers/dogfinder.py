@@ -58,9 +58,19 @@ dog_class_definition = {
                 "description": "The dog's color"
             },
             {
+                "name": "sex",
+                "dataType": ["text"],
+                "description": "The dog's sex"
+            },
+            {
                 "name": "extraDetails",
                 "dataType": ["text"],
                 "description": "Any extra detail that can be returned to the user to identify the dog"
+            },
+{
+                "name": "location",
+                "dataType": ["text"],
+                "description": "The location where the dog was lost or found"
             },
             {
                 "name": "type",
@@ -121,11 +131,6 @@ dog_class_definition = {
                 "name": "chipNumber",
                 "dataType": ["text"],
                 "description": "the chip number of the dog if exists"
-            },
-            {
-                "name": "location",
-                "dataType": ["text"],
-                "description": "the location of the dog"
             }
         ]
     }
@@ -141,7 +146,7 @@ class DocumentRequest(BaseModel):
     documents: List[DogDocument]
 
 # This is the request model for the query endpoint
-RETURN_PROPERTIES = ["type", "breed", "size", "color", "extraDetails", "filename", "imageBase64", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType","chipNumber","location"]
+RETURN_PROPERTIES = ["type", "breed", "size", "color", "sex", "extraDetails", "location", "filename", "imageBase64", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType","chipNumber"]
 
 class QueryRequest(BaseModel):
     type: DogType
@@ -293,7 +298,8 @@ async def add_document(type: DogType = Form(...),
                        img: UploadFile = File(...), 
                        breed: Optional[str] = Form(None), 
                        size: Optional[str] = Form(None), 
-                       color: Optional[str] = Form(None), 
+                       color: Optional[str] = Form(None),
+                       sex: Optional[str] = Form(None),
                        extraDetails: Optional[str] = Form(None), 
                        contactName: Optional[str] = Form(None), 
                        contactPhone: Optional[str] = Form(None), 
@@ -325,7 +331,8 @@ async def add_document(type: DogType = Form(...),
                                   imageContentType=img_content_type, 
                                   breed=breed, 
                                   size=size, 
-                                  color=color, 
+                                  color=color,
+                                  sex=sex,
                                   extraDetails=extraDetails,
                                   chipNumber=chipNumber,
                                   location=location

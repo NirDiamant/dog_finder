@@ -1,5 +1,3 @@
-
-from datetime import datetime
 from enum import Enum
 from typing import Optional
 from pydantic import BaseModel
@@ -10,12 +8,15 @@ from pydantic import BaseModel
 #         if isinstance(obj, Enum):
 #             return obj.value
 #         return json.JSONEncoder.default(self, obj)
-    
+
 class DogType(str, Enum):
     FOUND: str = "found"
     LOST: str = "lost"
 
-    
+class DogSex(str, Enum):
+    MALE: str = "male"
+    FEMALE: str = "female"
+
 class DogDocument(BaseModel):
     filename: str
     imageBase64: str
@@ -32,6 +33,7 @@ class DogDocument(BaseModel):
     breed: Optional[str] = None
     color: Optional[str] = None
     size: Optional[str] = None
+    sex: Optional[DogSex] = None
     extraDetails: Optional[str] = None
     chipNumber: Optional[str] = None
     location: Optional[str] = None
