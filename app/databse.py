@@ -65,6 +65,7 @@ class Dog(Base):
     size = Column(String)
     extra_details = Column(String)
     sex = Column(DOG_SEX_ENUMS)
+    location = Column(String)
 
     ## change times
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -78,7 +79,7 @@ class DogImages(Base):
     __tablename__ = 'dog_images'
     id = Column(ID_COLUMN_TYPE, primary_key=True, default=ID_CREATOR)
     dog_id = Column(ID_COLUMN_TYPE, ForeignKey('dogs.id'))
-    image_base64 = Column(String)
+    image_url = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, onupdate=datetime.utcnow)
 
@@ -87,8 +88,8 @@ class DogImages(Base):
 
 def add_examples(session):
     # Example 1: Insert a dog
-    dog1 = Dog(dog_type="lost", name="Rex", chip_number="123456789012345", breed="Labrador",
-               color="Yellow", size="Large", sex="female")
+    dog1 = Dog(dog_type="lost", name="Rex", chip_number="1234567890", breed="Labrador",
+               color="Yellow", size="Large")
     session.add(dog1)
 
     # Example 2: Insert dog images
@@ -99,8 +100,8 @@ def add_examples(session):
     # Commit the changes to the database
     session.commit()
 
-    dog2 = Dog(dog_type="found", name="Buddy", chip_number="987654321054321", breed="Golden Retriever",
-               color="Golden", size="Medium", sex="male")
+    dog2 = Dog(dog_type="found", name="Buddy", chip_number="9876543210", breed="Golden Retriever",
+               color="Golden", size="Medium", location="Somewhere over the rainbow")
     session.add(dog2)
 
     # Commit the changes to the database
