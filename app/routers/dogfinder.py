@@ -116,6 +116,16 @@ dog_class_definition = {
                 "name": "imageContentType",
                 "dataType": ["text"],
                 "description": "the image content type"
+            },
+            {
+                "name": "chipNumber",
+                "dataType": ["text"],
+                "description": "the chip number of the dog if exists"
+            },
+            {
+                "name": "location",
+                "dataType": ["text"],
+                "description": "the location of the dog"
             }
         ]
     }
@@ -131,7 +141,7 @@ class DocumentRequest(BaseModel):
     documents: List[DogDocument]
 
 # This is the request model for the query endpoint
-RETURN_PROPERTIES = ["type", "breed", "size", "color", "extraDetails", "filename", "imageBase64", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
+RETURN_PROPERTIES = ["type", "breed", "size", "color", "extraDetails", "filename", "imageBase64", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType","chipNumber","location"]
 
 class QueryRequest(BaseModel):
     type: DogType
@@ -288,7 +298,9 @@ async def add_document(type: DogType = Form(...),
                        contactName: Optional[str] = Form(None), 
                        contactPhone: Optional[str] = Form(None), 
                        contactEmail: Optional[str] = Form(None), 
-                       contactAddress: Optional[str] = Form(None)):
+                       contactAddress: Optional[str] = Form(None),
+                       chipNumber: Optional[str] = Form(None),
+                       location: Optional[str] = Form(None)):
     # logger.info(f"Document Request: {documentRequest}")
 
     try:
@@ -314,7 +326,9 @@ async def add_document(type: DogType = Form(...),
                                   breed=breed, 
                                   size=size, 
                                   color=color, 
-                                  extraDetails=extraDetails
+                                  extraDetails=extraDetails,
+                                  chipNumber=chipNumber,
+                                  location=location
                                   )
 
         # Create the embedding model
