@@ -65,6 +65,7 @@ class Dog(Base):
     size = Column(String)
     extra_details = Column(String)
     sex = Column(DOG_SEX_ENUMS)
+    location = Column(String)
 
     ## change times
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -88,7 +89,7 @@ class DogImages(Base):
 def add_examples(session):
     # Example 1: Insert a dog
     dog1 = Dog(dog_type="lost", name="Rex", chip_number="1234567890", breed="Labrador",
-               color="Yellow", size="Large")
+               color="Yellow", size="Large", location="Where eagles fly")
     session.add(dog1)
 
     # Example 2: Insert dog images
@@ -100,7 +101,7 @@ def add_examples(session):
     session.commit()
 
     dog2 = Dog(dog_type="found", name="Buddy", chip_number="9876543210", breed="Golden Retriever",
-               color="Golden", size="Medium")
+               color="Golden", size="Medium", location="Somewhere over the rainbow")
     session.add(dog2)
 
     # Commit the changes to the database
@@ -123,30 +124,30 @@ def get_connection_string(user: str, password: str, host: str, port: int = 5432,
         return f'{protocol}://{user}:{password}@{host}:{port}/{db}'
 
 
-def main():
-    # Create DB connection
-    db_connection_string = get_connection_string(user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT,
-                                                 db=DB_NAME, protocol=DB_PROTOCOL)
-    engine = create_engine(url=db_connection_string, echo=True)
+# def main():
+#     # Create DB connection
+#     db_connection_string = get_connection_string(user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT,
+#                                                  db=DB_NAME, protocol=DB_PROTOCOL)
+#     engine = create_engine(url=db_connection_string, echo=True)
+#
+#     # Drop existing db if exists
+#     if database_exists(engine.url):
+#         drop_database(engine.url)
+#
+#     # Create new db if not exists
+#     if not database_exists(engine.url):
+#         create_database(engine.url)
+#
+#     # Open session
+#     Session = sessionmaker(bind=engine)
+#     session = Session()
+#
+#     # Create the database tables
+#     Base.metadata.create_all(engine)
+#
+#     # Insert examples
+#     add_examples(session)
 
-    # Drop existing db if exists
-    if database_exists(engine.url):
-        drop_database(engine.url)
 
-    # Create new db if not exists
-    if not database_exists(engine.url):
-        create_database(engine.url)
-
-    # Open session
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    # Create the database tables
-    Base.metadata.create_all(engine)
-
-    # Insert examples
-    add_examples(session)
-
-
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()

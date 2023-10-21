@@ -57,7 +57,7 @@ dog_class_definition = {
                 "dataType": ["text"],
                 "description": "The dog's color"
             },
-{
+            {
                 "name": "sex",
                 "dataType": ["text"],
                 "description": "The dog's sex"
@@ -66,6 +66,11 @@ dog_class_definition = {
                 "name": "extraDetails",
                 "dataType": ["text"],
                 "description": "Any extra detail that can be returned to the user to identify the dog"
+            },
+{
+                "name": "location",
+                "dataType": ["text"],
+                "description": "The location where the dog was lost or found"
             },
             {
                 "name": "type",
@@ -136,7 +141,7 @@ class DocumentRequest(BaseModel):
     documents: List[DogDocument]
 
 # This is the request model for the query endpoint
-RETURN_PROPERTIES = ["type", "breed", "size", "color", "sex", "extraDetails", "filename", "imageBase64", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
+RETURN_PROPERTIES = ["type", "breed", "size", "color", "sex", "extraDetails", "location", "filename", "imageBase64", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
 
 class QueryRequest(BaseModel):
     type: DogType
@@ -294,7 +299,8 @@ async def add_document(type: DogType = Form(...),
                        contactName: Optional[str] = Form(None), 
                        contactPhone: Optional[str] = Form(None), 
                        contactEmail: Optional[str] = Form(None), 
-                       contactAddress: Optional[str] = Form(None)):
+                       contactAddress: Optional[str] = Form(None),
+                       location: Optional[str] = Form(None)):
     # logger.info(f"Document Request: {documentRequest}")
 
     try:
@@ -321,7 +327,8 @@ async def add_document(type: DogType = Form(...),
                                   size=size, 
                                   color=color,
                                   sex=sex,
-                                  extraDetails=extraDetails
+                                  extraDetails=extraDetails,
+                                  location=location
                                   )
 
         # Create the embedding model
