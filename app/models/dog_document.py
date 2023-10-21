@@ -15,7 +15,7 @@ class DogType(str, Enum):
 
 class DogSex(str, Enum):
     MALE: str = "male"
-    LOST: str = "lost"
+    FEMALE: str = "female"
 
 class DogDocument(BaseModel):
     filename: str

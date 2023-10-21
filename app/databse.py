@@ -89,12 +89,12 @@ class DogImages(Base):
 def add_examples(session):
     # Example 1: Insert a dog
     dog1 = Dog(dog_type="lost", name="Rex", chip_number="1234567890", breed="Labrador",
-               color="Yellow", size="Large", location="Where eagles fly")
+               color="Yellow", size="Large")
     session.add(dog1)
 
     # Example 2: Insert dog images
-    image1 = DogImages(dog=dog1, image_url="https://example.com/rex1.jpg")
-    image2 = DogImages(dog=dog1, image_url="https://example.com/rex2.jpg")
+    image1 = DogImages(dog=dog1, image_base64="SOME_IMAGE_BASE64")
+    image2 = DogImages(dog=dog1, image_base64="SOME_IMAGE_BASE64")
     session.add_all([image1, image2])
 
     # Commit the changes to the database
@@ -108,8 +108,8 @@ def add_examples(session):
     session.commit()
 
     # Example 3: Insert more dog images
-    image3 = DogImages(dog=dog2, image_url="https://example.com/buddy1.jpg")
-    image4 = DogImages(dog=dog2, image_url="https://example.com/buddy2.jpg")
+    image3 = DogImages(dog=dog2, image_base64="SOME_IMAGE_BASE64")
+    image4 = DogImages(dog=dog2, image_base64="SOME_IMAGE_BASE64")
     session.add_all([image3, image4])
 
     # Commit the changes to the database
@@ -129,25 +129,24 @@ def get_connection_string(user: str, password: str, host: str, port: int = 5432,
 #     db_connection_string = get_connection_string(user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT,
 #                                                  db=DB_NAME, protocol=DB_PROTOCOL)
 #     engine = create_engine(url=db_connection_string, echo=True)
-#
+
 #     # Drop existing db if exists
 #     if database_exists(engine.url):
 #         drop_database(engine.url)
-#
+
 #     # Create new db if not exists
 #     if not database_exists(engine.url):
 #         create_database(engine.url)
-#
+
 #     # Open session
 #     Session = sessionmaker(bind=engine)
 #     session = Session()
-#
+
 #     # Create the database tables
 #     Base.metadata.create_all(engine)
-#
+
 #     # Insert examples
 #     add_examples(session)
-
 
 # if __name__ == '__main__':
 #     main()
