@@ -126,6 +126,11 @@ dog_class_definition = {
                 "name": "imageContentType",
                 "dataType": ["text"],
                 "description": "the image content type"
+            },
+            {
+                "name": "chipNumber",
+                "dataType": ["text"],
+                "description": "the chip number of the dog if exists"
             }
         ]
     }
@@ -141,7 +146,7 @@ class DocumentRequest(BaseModel):
     documents: List[DogDocument]
 
 # This is the request model for the query endpoint
-RETURN_PROPERTIES = ["type", "breed", "size", "color", "sex", "extraDetails", "location", "filename", "imageBase64", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType"]
+RETURN_PROPERTIES = ["type", "breed", "size", "color", "sex", "extraDetails", "location", "filename", "imageBase64", IS_MATCHED_FIELD, DOG_ID_FIELD, "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType","chipNumber"]
 
 class QueryRequest(BaseModel):
     type: DogType
@@ -300,6 +305,7 @@ async def add_document(type: DogType = Form(...),
                        contactPhone: Optional[str] = Form(None), 
                        contactEmail: Optional[str] = Form(None), 
                        contactAddress: Optional[str] = Form(None),
+                       chipNumber: Optional[str] = Form(None),
                        location: Optional[str] = Form(None)):
     # logger.info(f"Document Request: {documentRequest}")
 
@@ -328,6 +334,7 @@ async def add_document(type: DogType = Form(...),
                                   color=color,
                                   sex=sex,
                                   extraDetails=extraDetails,
+                                  chipNumber=chipNumber,
                                   location=location
                                   )
 

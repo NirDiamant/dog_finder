@@ -35,6 +35,7 @@ class DogDocument(BaseModel):
     size: Optional[str] = None
     sex: Optional[DogSex] = None
     extraDetails: Optional[str] = None
+    chipNumber: Optional[str] = None
     location: Optional[str] = None
 
     class Config:
