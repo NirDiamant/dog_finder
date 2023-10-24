@@ -1,68 +1,45 @@
 import os
-from datetime import datetime
 
-from sqlalchemy import Column, String, ForeignKey, DateTime, Enum, Boolean, Integer
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy import create_engine, orm
+from contextlib import contextmanager, AbstractContextManager
+from sqlalchemy.orm import declarative_base, Session
+from app.MyLogger import logger
+from typing import Callable
 
-# DB variables
-DB_USER = os.environ.get("DB_USER")
-DB_PASSWORD = os.environ.get("DB_PASSWORD")
-DB_HOST = os.environ.get("DB_HOST")
-DB_PORT = os.environ.get("DB_PORT")
-DB_NAME = os.environ.get("DB_NAME", 'dogfinder')
-DB_PROTOCOL = os.environ.get("DB_PROTOCOL", "sqlite")
-
-# DB field enums
-DOG_TYPE_ENUMS = Enum('lost', 'found', name='dog_type')
-DOG_SEX_ENUMS = Enum('male', 'female', name='dog_sex')
+def get_connection_string(user: str, password: str, host: str, port: int = 5432, db: str = 'dogfinder', protocol: str = 'postgresql') -> str:
+    if protocol == 'sqlite':
+        return f"sqlite:///{db}.db"
+    else:
+        return f'{protocol}://{user}:{password}@{host}:{port}/{db}'
 
 # Create a base class for declarative models
 Base = declarative_base()
 
+class Database:
+    def __init__(self, db_url: str) -> None:
+        self._engine = create_engine(db_url, echo=True)
+        self._session_factory = orm.scoped_session(
+            orm.sessionmaker(
+                autocommit=False,
+                autoflush=False,
+                bind=self._engine,
+            ),
+        )
 
-class Dog(Base):
-    __tablename__ = 'dogs'
+    def create_database(self) -> None:
+        Base.metadata.create_all(self._engine)
 
-    # Dog data
-    ## Entry data
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    dog_type = Column(DOG_TYPE_ENUMS, nullable=False)
-    is_matched = Column(Boolean, default=False)
-    is_verified = Column(Boolean, default=False)
-
-    ## contact details
-    contact_name = Column(String)
-    contact_phone = Column(String)
-    contact_email = Column(String)
-    contact_address = Column(String)
-
-    ## dog attributes
-    name = Column(String)
-    chip_number = Column(String(length=15))
-    breed = Column(String)
-    color = Column(String)
-    size = Column(String)
-    extra_details = Column(String)
-    sex = Column(DOG_SEX_ENUMS)
-    location = Column(String)
-
-    ## change times
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, onupdate=datetime.utcnow)
-
-    # relationship
-    images = relationship('DogImages', back_populates='dog')
-
-
-class DogImages(Base):
-    __tablename__ = 'dog_images'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    dog_id = Column(Integer, ForeignKey('dogs.id'))
-    image_base64 = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, onupdate=datetime.utcnow)
-
-    dog = relationship('Dog', back_populates='images')
+    @contextmanager
+    def session(self) -> Callable[..., AbstractContextManager[Session]]:
+        session: Session = self._session_factory()
+        try:
+            yield session
+        except Exception:
+            logger.error("Session rollback because of exception")
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
 #
 # def add_examples(session):

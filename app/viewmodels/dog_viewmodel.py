@@ -1,13 +1,6 @@
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel
-# import json
-
-# class DogTypeEncoder(json.JSONEncoder):
-#     def default(self, obj):
-#         if isinstance(obj, Enum):
-#             return obj.value
-#         return json.JSONEncoder.default(self, obj)
 
 class DogType(str, Enum):
     FOUND: str = "found"
@@ -17,9 +10,8 @@ class DogSex(str, Enum):
     MALE: str = "male"
     FEMALE: str = "female"
 
-class DogDocument(BaseModel):
-    filename: str
-    imageBase64: str
+class DogRequest(BaseModel):
+    base64Images: List[str]
     type: DogType
     isMatched: bool = False
     isVerified: bool = False
@@ -28,8 +20,8 @@ class DogDocument(BaseModel):
     contactPhone: Optional[str] = None
     contactEmail: Optional[str] = None
     contactAddress: Optional[str] = None
-    imageContentType: Optional[str] = None
     # I'm putting all of these as optional for now
+    name: Optional[str] = None
     breed: Optional[str] = None
     color: Optional[str] = None
     size: Optional[str] = None
@@ -40,3 +32,28 @@ class DogDocument(BaseModel):
 
     class Config:
         use_enum_values = True
+
+class DogImageResponse(BaseModel):
+    id: int
+    base64Image: str
+    imageContentType: Optional[str] = "webp"
+
+class DogResponse(BaseModel):
+    id: int
+    images: List[DogImageResponse]
+    type: DogType
+    isMatched: bool = False
+    isVerified: bool = False
+    # I'm putting all of these as optional for now
+    name: Optional[str] = None
+    breed: Optional[str] = None
+    color: Optional[str] = None
+    size: Optional[str] = None
+    sex: Optional[DogSex] = None
+    extraDetails: Optional[str] = None
+    chipNumber: Optional[str] = None
+    location: Optional[str] = None
+
+    class Config:
+        use_enum_values = True
+

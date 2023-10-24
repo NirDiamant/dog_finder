@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
-from app.models import DogDocument
+from app.DTO.dog_dto import DogDTO
 
 class IVectorDBClient(ABC):
     @abstractmethod
-    def add_documents_batch(self, class_name: str, documents: list[DogDocument]) -> None:
+    def add_documents_batch(self, class_name: str, documents: list[DogDTO]) -> None:
         pass
 
     @abstractmethod
