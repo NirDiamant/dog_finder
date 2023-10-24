@@ -105,21 +105,32 @@ class WeaviateVectorDBClient(IVectorDBClient):
         """
         Queries the model with a given query and returns best matches.
         """
-        logger.info(f"Querying the vector db with query: {query} and query_embedding length: {len(query_embedding)}, filter: {filter}, limit: {limit}, offset: {offset}, properties: {properties}")
+        logger.info(f"Querying the vector db with query: {query} and query_embedding length: {len(query_embedding) if query_embedding is not None else None}, filter: {filter}, limit: {limit}, offset: {offset}, properties: {properties}")
         
         # Query the database
         logger.info(f"Querying the database")
-        results = (
-            self.client.query
-            .get(class_name, properties)
-            .with_near_vector({
-                "vector": query_embedding,
-            })
-            .with_where(filter)
-            .with_limit(limit)
-            .with_additional(["distance","id"])
-            .do()
-        )
+        if query_embedding is None:
+            results = (
+                self.client.query
+                .get(class_name, properties)
+                .with_where(filter)
+                .with_limit(limit)
+                .with_additional(["id"])
+                # .with_offset(offset)
+                .do()
+            )
+        else:
+            results = (
+                self.client.query
+                .get(class_name, properties)
+                .with_near_vector({
+                    "vector": query_embedding,
+                })
+                .with_where(filter)
+                .with_limit(limit)
+                .with_additional(["distance","id"])
+                .do()
+            )
         
         # Check if there are errors
         if results.get("errors"):
@@ -134,7 +145,8 @@ class WeaviateVectorDBClient(IVectorDBClient):
         # The score should be calulated as max(0, min(1, 1-doc._additional["distance"])
         # round the score to 4 decimals in one line
         for doc in results:
-            doc["score"] = round(max(0, min(1, 1-doc["_additional"]["distance"])), 4)
+            if "_additional" in doc and "distance" in doc["_additional"]:
+                doc["score"] = round(max(0, min(1, 1-doc["_additional"]["distance"])), 4)
 
         logger.info(f"Results: {results}")
         

@@ -1,7 +1,11 @@
 fastapi
 uvicorn
+PyJWT
 cachetools
 python-multipart
+pydantic-settings
 weaviate-client
 Pillow
 sentence_transformers
+sqlalchemy
+sqlalchemy_utils
