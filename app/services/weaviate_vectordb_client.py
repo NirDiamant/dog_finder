@@ -37,7 +37,7 @@ class WeaviateVectorDBClient(IVectorDBClient):
                             logger.error(result["result"])
                             errors.append({"error": result["result"]["errors"]["error"], "properties": result["properties"]})
                     else:
-                        logger.info(f"found result {result}")
+                        # logger.info(f"found result {result}")
                         success.append({ "properties": result["properties"] })
         #endregion
 

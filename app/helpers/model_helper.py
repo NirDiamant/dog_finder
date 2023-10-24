@@ -21,3 +21,29 @@ def create_sentence_transformer_embedding_model():
     embedding = SentenceTransformer(model_name_or_path=embedding_model_name)
 
     return embedding
+
+@timeit
+def embed_documents(documents, embedding_model):
+    logger.info(f"Embedding documents {len(documents)} documents: '{documents}'")
+
+    if (embedding_model is not None):
+        texts_embedding = embedding_model.encode(documents)
+        # log texts_embedding 2 dimensions lenght of the first element as well
+        logger.info(f"Texts embedding: {texts_embedding} Dimensions: [{len(texts_embedding)},{len(texts_embedding[0])}]")
+    else:
+        # create a random embedding
+        texts_embedding = [[0.1] * 512] * len(documents)
+
+    return texts_embedding
+
+@timeit
+def embed_query(query, embedding_model):
+    logger.info(f"Embedding query: '{query}'")
+
+    if (embedding_model is not None):
+        query_embedding = embedding_model.encode(query)
+    else:
+        # create a random embedding
+        query_embedding = [0.1] * 512
+
+    return query_embedding

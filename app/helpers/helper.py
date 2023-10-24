@@ -1,3 +1,7 @@
+import datetime
+import hashlib
+from typing import Any
+import uuid
 from app.MyLogger import logger
 import regex as re
 import html
@@ -32,6 +36,17 @@ def async_timeit(func):
         return result
 
     return wrapper
+
+def _json_serializable(value: Any) -> Any:
+    if isinstance(value, datetime.datetime):
+        return value.isoformat()
+    return value
+
+def hash_image(image):
+    return hashlib.md5(image.encode()).hexdigest()
+
+def generate_dog_id():
+    return str(uuid.uuid4())
 
 def detect_image_mimetype(base64_str):
     img_data = base64.b64decode(base64_str)
