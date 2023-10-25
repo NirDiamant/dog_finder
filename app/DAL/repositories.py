@@ -72,3 +72,18 @@ class DogWithImagesRepository:
             raise e
         finally:
             session.close()
+
+    # Update the dog isMatched field to True or False    
+    def update_dog_is_matched(self, dog_id: int, is_matched: bool) -> None:
+        try:
+            with self.session_factory() as session:
+                # Query dog with images by id eager loading images relationship with join
+                dog = session.query(Dog).filter(Dog.id == dog_id).first()
+                
+                dog.isMatched = is_matched
+
+                session.commit()
+        except SQLAlchemyError as e:
+            raise e
+        finally:
+            session.close()

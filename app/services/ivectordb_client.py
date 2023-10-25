@@ -12,6 +12,10 @@ class IVectorDBClient(ABC):
         pass
 
     @abstractmethod
+    def delete_by_ids(self, class_name: str, field_name: str, ids: list[str]) -> None:
+        pass
+
+    @abstractmethod
     def query(self, class_name: str, query: str, query_embedding: List[float], limit: int = None, offset: int = None, filter: Dict[str, Any] = None) -> dict:
         pass
 

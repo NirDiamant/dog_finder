@@ -39,6 +39,17 @@ class VectorDBIndexer:
         result = self.vecotrDBClient.add_documents_batch("Dog", documents)
 
         return result
+    
+    def delete_dogs_with_images(self, dogs: List[Dog]) -> None:
+        # Delete the documents from the database
+
+        result = self.vecotrDBClient.delete_by_ids(
+            class_name='Dog',
+            field_name='dogId',
+            ids=[dog.id for dog in dogs]
+        )
+
+        return result
 
 def create_data_properties(dog: Dog, dogImage: DogImage) -> dict[str, Any]:
     # Transform document to dictionary
