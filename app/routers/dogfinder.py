@@ -19,7 +19,7 @@ from weaviate.util import generate_uuid5
 from app.models.predicates import Predicate, Filter, and_, or_
 # from sentence_transformers import SentenceTransformer
 import os
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from PIL import Image
 from io import BytesIO
 import base64
@@ -314,7 +314,8 @@ async def add_document(type: DogType = Form(...),
                        contactEmail: Optional[str] = Form(None), 
                        contactAddress: Optional[str] = Form(None),
                        chipNumber: Optional[str] = Form(None),
-                       location: Optional[str] = Form(None)):
+                       location: Optional[str] = Form(None),
+                       dogFoundOn: Optional[date] = Form(None)):
     # logger.info(f"Document Request: {documentRequest}")
 
     try:
@@ -337,7 +338,8 @@ async def add_document(type: DogType = Form(...),
                         sex=sex,
                         extraDetails=extraDetails,
                         chipNumber=chipNumber,
-                        location=location
+                        location=location,
+                        dogFoundOn=dogFoundOn
         )
 
         dogDTO, result = dogWithImagesService.add_dog_with_images(dogDTO)

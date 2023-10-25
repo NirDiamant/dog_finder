@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
+from datetime import date
 
 class DogType(str, Enum):
     FOUND: str = "found"
@@ -35,6 +36,15 @@ class DogDTO(BaseModel):
     extraDetails: Optional[str] = None
     chipNumber: Optional[str] = None
     location: Optional[str] = None
+
+    dogFoundOn: Optional[date] = None
+
+    # add field_serializer to convert dogFoundOn to string
+    @field_serializer("dogFoundOn")
+    def dogFoundOn_serializer(self, v: date, _info):
+        return v.isoformat() if v else None
+
+    
 
     class Config:
         use_enum_values = True
