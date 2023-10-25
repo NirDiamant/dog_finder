@@ -45,6 +45,7 @@ class VectorDBIndexer:
 
         result = self.vecotrDBClient.delete_by_ids(
             class_name='Dog',
+            field_name='dogId',
             ids=[dog.id for dog in dogs]
         )
 
