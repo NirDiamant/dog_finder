@@ -38,6 +38,7 @@ class Dog(Base):
     extraDetails = Column(String)
 
     ## change times
+    dogFoundOn = Column(DateTime, default=datetime.utcnow)
     createdAt = Column(DateTime, default=datetime.utcnow)
     updatedAt = Column(DateTime, onupdate=datetime.utcnow)
 
