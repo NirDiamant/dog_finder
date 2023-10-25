@@ -24,3 +24,11 @@ class DogWithImagesService:
 
     def get_all_dogs_with_images(self) -> list[DogDTO]:
         return self.repository.get_all_dogs_with_images()
+    
+    # Update the dog isMatched field to True or False
+    def update_dog_is_matched(self, dog_id: int, is_matched: bool) -> DogDTO:
+        self.repository.update_dog_is_matched(dog_id, is_matched)
+
+        result = self.vectordbIndexer.delete_dogs_with_images([Dog(id=dog_id)])
+
+        return result

@@ -77,6 +77,40 @@ class WeaviateVectorDBClient(IVectorDBClient):
         return { "successful": len(success), "failed": len(errors), "failed_objects": errors }
 
     @timeit
+    def delete_by_ids(self, class_name: str, field_name: str, ids: list[int]) -> None:
+        """
+        Deletes all documents of specific class name from the vectordb.
+        """
+
+        try:
+            logger.info(f"Deleting {len(ids)} documents of '{class_name}' class from the vectordb") 
+
+            with self.client.batch(
+                num_workers=2,   # Parallelize the process
+            ) as batch:
+                # From documentRequest.documents, create a list of unique ids
+                ids = list(set(ids))
+                logger.info(f"Deleting {len(ids)} documents from the database: {ids}")
+
+                # Create Predicate for dogs ids
+                filter = or_(*[Predicate([field_name], "Equal", id, FilterValueTypes.valueNumber) for id in ids])
+                logger.info(f"Delete filter: {filter.to_dict()}") 
+
+                # Delete all the documents with the ids
+                result = batch.delete_objects(
+                    class_name=class_name,
+                    where=filter.to_dict(),
+                )
+
+            # log info by using the result object
+            logger.info(f"Results of deleted_by_ids {result['results']}") 
+
+            return { "success": True, "results": result["results"] }
+        except Exception as e:
+            logger.error(f"Error deleting documents of '{class_name}' class and ids {ids} from the vectordb: {e}")
+            return { "success": False, "message": f"Error deleting documents of '{class_name}' class and ids {ids} from the vectordb" }
+        
+    @timeit
     def clean_all(self, class_name: str, class_obj: dict) -> None:
         """
         Deletes all documents of specific class name from the vectordb.

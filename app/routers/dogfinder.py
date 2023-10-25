@@ -155,7 +155,7 @@ class QueryRequest(BaseModel):
     return_properties: Optional[List[str]] = RETURN_PROPERTIES
     isVerified: Optional[bool] = True
 
-class DogFoundRequest(BaseModel):
+class DogMatchedRequest(BaseModel):
     dogId: int
 
 @router.on_event("startup")
@@ -445,14 +445,12 @@ async def clean_all():
     # return back a json response and set the status code to api_response.status_code
     return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
-@router.post("/doc_found", response_model=APIResponse)
-async def doc_found(foundRequest: DogFoundRequest):
+@router.post("/doc_matched", response_model=APIResponse)
+async def doc_matched(foundRequest: DogMatchedRequest):
 
-    vecotrDBClient.update_document("Dog", foundRequest.dogId,{
-                "isMatched": True,
-            })
+    result = dogWithImagesService.update_dog_is_matched(foundRequest.dogId, True)
 
-    api_response = APIResponse(status_code=200, message=f"matched dog marked", data={})
+    api_response = APIResponse(status_code=200, message=f"Dog marked as matched", data={ "results": result })
     # return back a json response and set the status code to api_response.status_code
     return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
@@ -477,7 +475,7 @@ def build_filter(queryRequest: QueryRequest) -> Optional[Filter]:
     # if queryRequest.isVerified is not None:
     #     predicates.append(Predicate(["isVerified"], "Equal", queryRequest.isVerified, FilterValueTypes.valueBoolean))
 
-    # add isMatched predicate, we only want to return dogs that are not found
+    # add isMatched predicate, we only want to return dogs that are not matched
     predicates.append(Predicate(["isMatched"], "Equal", False, FilterValueTypes.valueBoolean))
 
     # if there are predicates return and_ between them
