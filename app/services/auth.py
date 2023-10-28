@@ -86,23 +86,10 @@ class VerifyToken:
 
         # Check if there are any specific security scopes to verify
         if len(security_scopes.scopes) > 0:
-            self._check_claims(payload, 'scope', security_scopes.scopes)
+            permissions = payload["permissions"]
+            for required_permission in security_scopes.scopes:
+                if required_permission not in permissions:
+                    raise UnauthorizedException(detail=f'Missing "{required_permission}" permission')
+
 
         return payload
-
-    def _check_claims(self, payload, claim_name, expected_value):
-        # Check if the specified claim is present in the JWT payload
-        if claim_name not in payload:
-            raise UnauthorizedException(detail=f'No claim "{claim_name}" found in token')
-
-        # Extract the value of the claim from the JWT payload
-        payload_claim = payload[claim_name]
-
-        # If the claim we are checking is 'scope', split the string to get individual scopes
-        if claim_name == 'scope':
-            payload_claim = payload[claim_name].split(' ')
-
-        # Verify each expected value against the JWT's claims
-        for value in expected_value:
-            if value not in payload_claim:
-                raise UnauthorizedException(detail=f'Missing "{claim_name}" scope')

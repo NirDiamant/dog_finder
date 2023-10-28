@@ -201,14 +201,6 @@ async def startup_event():
 
 auth = VerifyToken()
 
-@router.get("/private")
-def private(auth_result: str = Security(auth.verify)):
-    return auth_result
-
-@router.get("/private-scoped")
-def private_scoped(auth_result: str = Security(auth.verify, scopes=['read:dogs'])):
-    return auth_result
-
 @router.post("/query/", response_model=APIResponse)
 async def query(type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10), isVerified: Optional[bool] = Form(True)):
     try:
@@ -270,7 +262,7 @@ async def search_lost_dogs(breed: Optional[str] = Form(None), img: UploadFile = 
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.get("/get_unverified_documents/", response_model=APIResponse)
-async def get_unverified_documents():
+async def get_unverified_documents(auth_result: str = Security(auth.verify, scopes=['read:unverified_documents'])):
     try:
         # Query the database
         results = vecotrDBClient.query(class_name="Dog", query=None, query_embedding=None, limit=10000, offset=None, filter=and_(*[Predicate(["isVerified"], "Equal", False, FilterValueTypes.valueBoolean)]).to_dict(), properties=RETURN_PROPERTIES)
@@ -285,7 +277,7 @@ async def get_unverified_documents():
     
 # Endpoint for quering the database without the need for a query image, only DOG_ID_FIELD
 @router.get("/query_by_dog_id/", response_model=APIResponse)
-async def query_by_dog_id(dogId: int):
+async def query_by_dog_id(dogId: int, auth_result: str = Security(auth.verify, scopes=['read:unverified_documents'])):
     try:
         # Query the database
         dog = dogWithImagesRepository.get_dog_with_images_by_id(dogId)
@@ -407,7 +399,7 @@ async def add_document(type: DogType = Form(...),
 
 # Add an endpoint to set isVerified to True
 @router.post("/verify_document", response_model=APIResponse)
-async def verify_document(dogId: int):
+async def verify_document(dogId: int, auth_result: str = Security(auth.verify, scopes=['write:verify_document'])):
     logger.info(f"Verify document: {dogId}")
 
     try:
