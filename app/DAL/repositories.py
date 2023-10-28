@@ -34,12 +34,12 @@ class DogWithImagesRepository:
                 return dogDTO
         except SQLAlchemyError as e:
             # Rollback transaction on error
-            logger.error(f"DB Error while adding dog with images: {e}")
+            logger.exception(f"DB Error while adding dog with images: {e}")
             session.rollback()
             raise e
         except Exception as e:
             # Rollback transaction on error
-            logger.error(f"Error while adding dog with images: {e}")
+            logger.exception(f"Error while adding dog with images: {e}")
             session.rollback()
             raise e
         finally:
