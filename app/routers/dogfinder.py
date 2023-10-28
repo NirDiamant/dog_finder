@@ -277,7 +277,7 @@ async def get_unverified_documents(auth_result: str = Security(auth.verify, scop
     
 # Endpoint for quering the database without the need for a query image, only DOG_ID_FIELD
 @router.get("/query_by_dog_id/", response_model=APIResponse)
-async def query_by_dog_id(dogId: int, auth_result: str = Security(auth.verify, scopes=['read:unverified_documents'])):
+async def query_by_dog_id(dogId: int, auth_result: str = Security(auth.verify, scopes=['read:dogs:by_id'])):
     try:
         # Query the database
         dog = dogWithImagesRepository.get_dog_with_images_by_id(dogId)
