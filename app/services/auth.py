@@ -1,4 +1,3 @@
-from configparser import ConfigParser
 import os
 from typing import Optional
 
@@ -9,20 +8,13 @@ from fastapi.security import SecurityScopes, HTTPAuthorizationCredentials, HTTPB
 def get_auth0_config():
     """Sets up configuration for the app"""
 
-    env = os.getenv("ENV", ".config")
-
-    # Read config from .config file or environment variables
-    if env == ".config":
-        config = ConfigParser()
-        config.read(".config")
-        config = config["AUTH0"]
-    else:
-        config = {
-            "DOMAIN": os.getenv("AUTH0_DOMAIN"),
-            "API_AUDIENCE": os.getenv("AUTH0_API_AUDIENCE"),
-            "ISSUER": os.getenv("AUTH0_ISSUER"),
-            "ALGORITHMS": os.getenv("AUTH0_ALGORITHMS"),
-        }
+    config = {
+        "DOMAIN": os.getenv("AUTH0_DOMAIN"),
+        "API_AUDIENCE": os.getenv("AUTH0_API_AUDIENCE"),
+        "ISSUER": os.getenv("AUTH0_ISSUER"),
+        "ALGORITHMS": os.getenv("AUTH0_ALGORITHMS"),
+    }
+        
     for key, value in config.items():
         if value == "":
             print(f"Missing config: {key}")
