@@ -22,20 +22,22 @@ class DogDTO(BaseModel):
     type: DogType
     isMatched: bool = False
     isVerified: bool = False
-    # Contact details like name, phone, email, address
+
+    ## Contact details
     contactName: Optional[str] = None
     contactPhone: Optional[str] = None
     contactEmail: Optional[str] = None
     contactAddress: Optional[str] = None
-    # I'm putting all of these as optional for now
+    
+    ## dog attributes
     name: Optional[str] = None
     breed: Optional[str] = None
     color: Optional[str] = None
     size: Optional[str] = None
     sex: Optional[DogSex] = None
-    extraDetails: Optional[str] = None
     chipNumber: Optional[str] = None
     location: Optional[str] = None
+    extraDetails: Optional[str] = None
 
     dogFoundOn: Optional[date] = None
 

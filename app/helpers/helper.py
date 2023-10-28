@@ -74,19 +74,19 @@ def resize_image_and_convert_to_format(base64_str: str, max_size: tuple[int, int
     # Check if the image needs to be resized, if not just convert it to the specified format
     width, height = img.size
     max_width, max_height = max_size
-    if width <= max_width and height <= max_height:
-        buffered = io.BytesIO()
-        img.save(buffered, format=format)
 
-        # Encode the resized image as a base64 string and return it along with the image format
-        return base64.b64encode(buffered.getvalue()).decode('utf-8'), f"image/{format.lower()}"
-
-    # Calculate the new size while maintaining aspect ratio
-    ratio = min(max_width / width, max_height / height)
-    new_size = (int(width * ratio), int(height * ratio))
-
-    # Resize the image and return as base64 string
-    img = img.resize(new_size)
+    # If the image needs resized, resize it
+    if width > max_width or height > max_height:
+        # Calculate the new size while maintaining aspect ratio
+        ratio = min(max_width / width, max_height / height)
+        new_size = (int(width * ratio), int(height * ratio))
+        # Resize the image and return as base64 string
+        img = img.resize(new_size)
+    else:
+        # Check if the image format is webp, return it as is
+        if img.format == format:
+            return base64_str, f"image/{format.lower()}"
+    
     buffered = io.BytesIO()
     img.save(buffered, format=format)
 

@@ -8,7 +8,7 @@ from app.MyLogger import logger
 from app.services.dog_service import DogWithImagesService
 from app.services.vectordb_indexer import VectorDBIndexer
 from app.viewmodels.api_response import APIResponse
-from app.viewmodels.dog_viewmodel import DogImageResponse, DogResponse
+from app.viewmodels.dog_viewmodel import RETURN_PROPERTIES, DogFullDetailsResponse, DogImageResponse, DogAddRequest, DogMatchedRequest, DogResponse, DogSearchRequest
 from fastapi import APIRouter, File, Form, Security, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -39,8 +39,6 @@ embedding_model: Any = None
 
 # CHANGE THIS TO FALSE ON PRODUCTION
 IS_VERIFIED_FIELD_DEFAULT_VALUE = False
-# This is the request model for the query endpoint
-RETURN_PROPERTIES = ["type", "breed", "size", "color", "sex", "extraDetails", "location", "imageBase64", "isMatched", "dogId", "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType","chipNumber"]
 
 dog_class_definition = {
         "class": "Dog",
@@ -146,17 +144,7 @@ dog_class_definition = {
             }
         ]
     }
-   
-class QueryRequest(BaseModel):
-    type: DogType
-    imageBase64: str
-    breed: Optional[str] = None
-    top: int = 10
-    return_properties: Optional[List[str]] = RETURN_PROPERTIES
-    isVerified: Optional[bool] = True
 
-class DogMatchedRequest(BaseModel):
-    dogId: int
 
 @router.on_event("startup")
 async def startup_event():
@@ -201,17 +189,39 @@ async def startup_event():
 
 auth = VerifyToken()
 
-@router.post("/query/", response_model=APIResponse)
-async def query(type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10), isVerified: Optional[bool] = Form(True)):
+# @router.post("/query/", response_model=APIResponse)
+# async def query(type: DogType = Form(...), breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10), isVerified: Optional[bool] = Form(True)):
+#     try:
+#         # Handle the image, resize it and convert it to base64 with webp format and get the content type
+#         base64Images, imageContentTypes = zip(*handle_uploaded_images([img]))
+
+#         # Create QueryRequest
+#         queryRequest = QueryRequest(type=type, breed=breed, imageBase64=base64Images[0], top=top, isVerified=isVerified)
+
+#         # Query the database
+#         results = query_vector_db(queryRequest, query)
+
+#         api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
+#     except Exception as e:
+#         logger.error(f"Error while querying the vecotrdb: {e}")
+#         api_response = APIResponse(status_code=500, message=f"Error while querying the vecotrdb: {e}", data={ "total": 0, "results": [] })
+#     finally:
+#         # return back a json response and set the status code to api_response.status_code
+#         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
+@router.post("/search_in_found_dogs/", response_model=APIResponse)
+async def search_in_found_dogs(dogSearchRequest: DogSearchRequest):
     try:
         # Handle the image, resize it and convert it to base64 with webp format and get the content type
-        base64Images, imageContentTypes = zip(*handle_uploaded_images([img]))
+        base64Images, imageContentTypes = zip(*handle_uploaded_images([dogSearchRequest.base64Image]))
 
         # Create QueryRequest
-        queryRequest = QueryRequest(type=type, breed=breed, imageBase64=base64Images[0], top=top, isVerified=isVerified)
+        dogSearchRequest.type = DogType.FOUND
+        dogSearchRequest.base64Image = base64Images[0]
+        dogSearchRequest.isVerified = True
 
         # Query the database
-        results = query_vector_db(queryRequest, query)
+        results = query_vector_db(dogSearchRequest)
 
         api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
     except Exception as e:
@@ -221,37 +231,20 @@ async def query(type: DogType = Form(...), breed: Optional[str] = Form(None), im
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
-@router.post("/search_found_dogs/", response_model=APIResponse)
-async def search_found_dogs(breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10)):
+@router.post("/search_in_lost_dogs/", response_model=APIResponse)
+async def search_in_lost_dogs(dogSearchRequest: DogSearchRequest):
     try:
         # Handle the image, resize it and convert it to base64 with webp format and get the content type
-        base64Images, imageContentTypes = zip(*handle_uploaded_images([img]))
+        base64Images, imageContentTypes = zip(*handle_uploaded_images([dogSearchRequest.base64Image]))
 
         # Create QueryRequest
-        queryRequest = QueryRequest(type=DogType.FOUND, breed=breed, imageBase64=base64Images[0], top=top, isVerified=True)
+        dogSearchRequest.type = DogType.LOST
+        dogSearchRequest.base64Image = base64Images[0]
+        dogSearchRequest.isVerified = True
+        # queryRequest = QueryRequest(type=DogType.LOST, breed=breed, imageBase64=base64Images[0], top=top, isVerified=True)
 
         # Query the database
-        results = query_vector_db(queryRequest, query)
-
-        api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
-    except Exception as e:
-        logger.error(f"Error while querying the vecotrdb: {e}")
-        api_response = APIResponse(status_code=500, message=f"Error while querying the vecotrdb: {e}", data={ "total": 0, "results": [] })
-    finally:
-        # return back a json response and set the status code to api_response.status_code
-        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
-
-@router.post("/search_lost_dogs/", response_model=APIResponse)
-async def search_lost_dogs(breed: Optional[str] = Form(None), img: UploadFile = File(...), top: int = Form(10)):
-    try:
-        # Handle the image, resize it and convert it to base64 with webp format and get the content type
-        base64Images, imageContentTypes = zip(*handle_uploaded_images([img]))
-
-        # Create QueryRequest
-        queryRequest = QueryRequest(type=DogType.LOST, breed=breed, imageBase64=base64Images[0], top=top, isVerified=True)
-
-        # Query the database
-        results = query_vector_db(queryRequest, query)
+        results = query_vector_db(dogSearchRequest)
 
         api_response = APIResponse(status_code=200, message=f"Queried {len(results)} results from the vecotrdb", data={ "total": len(results), "results": results })
     except Exception as e:
@@ -276,8 +269,8 @@ async def get_unverified_documents(auth_result: str = Security(auth.verify, scop
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
     
 # Endpoint for quering the database without the need for a query image, only DOG_ID_FIELD
-@router.get("/query_by_dog_id/", response_model=APIResponse)
-async def query_by_dog_id(dogId: int, auth_result: str = Security(auth.verify, scopes=['read:dogs:by_id'])):
+@router.get("/get_dog_by_id/", response_model=APIResponse)
+async def get_dog_by_id(dogId: int):
     try:
         # Query the database
         dog = dogWithImagesRepository.get_dog_with_images_by_id(dogId)
@@ -293,46 +286,57 @@ async def query_by_dog_id(dogId: int, auth_result: str = Security(auth.verify, s
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
+# Endpoint for quering the database without the need for a query image, only DOG_ID_FIELD
+@router.get("/get_dog_by_id_full_details/", response_model=APIResponse)
+async def query_by_dog_id(dogId: int, auth_result: str = Security(auth.verify, scopes=['read:dogs:by_id'])):
+    try:
+        # Query the database
+        dog = dogWithImagesRepository.get_dog_with_images_by_id(dogId)
+        
+        dogResponseViewModel = mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={"images": []})
+        dogResponseViewModel.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
+
+        api_response = APIResponse(status_code=200, message=f"Queried dog from the database", data={ "results": dogResponseViewModel.model_dump() })
+    except Exception as e:
+        logger.error(f"Error while querying the database: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while querying the database: {e}", data={ "total": 0, "results": [] })
+    finally:
+        # return back a json response and set the status code to api_response.status_code
+        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
 @router.post("/add_document", response_model=APIResponse)
-async def add_document(type: DogType = Form(...), 
-                       imgs: List[UploadFile] = File(...), 
-                       breed: Optional[str] = Form(None), 
-                       size: Optional[str] = Form(None), 
-                       color: Optional[str] = Form(None),
-                       sex: Optional[str] = Form(None),
-                       extraDetails: Optional[str] = Form(None), 
-                       contactName: Optional[str] = Form(None), 
-                       contactPhone: Optional[str] = Form(None), 
-                       contactEmail: Optional[str] = Form(None), 
-                       contactAddress: Optional[str] = Form(None),
-                       chipNumber: Optional[str] = Form(None),
-                       location: Optional[str] = Form(None),
-                       dogFoundOn: Optional[date] = Form(None)):
+async def add_document(dogRequest: DogAddRequest):
     # logger.info(f"Document Request: {documentRequest}")
 
     try:
         # Handle the image, resize it and convert it to base64 with webp format and get the content type
         # Unzip the array of tuples coming back from handle_uploaded_images
-        base64Images = handle_uploaded_images(imgs)
+        base64Images = handle_uploaded_images(dogRequest.base64Images)
         # base64Images, imageContentTypes = zip(*handle_uploaded_images(imgs))
 
         # Create DogDocument
-        dogDTO = DogDTO(type=type.value,
-                        images=[DogImageDTO(id=None, base64Image=base64Image[0], imageContentType=base64Image[1]) for base64Image in base64Images],
-                        contactName=contactName, 
-                        contactPhone=contactPhone, 
-                        contactEmail=contactEmail, 
-                        contactAddress=contactAddress,
-                        isVerified=IS_VERIFIED_FIELD_DEFAULT_VALUE,
-                        breed=breed,
-                        size=size,
-                        color=color,
-                        sex=sex,
-                        extraDetails=extraDetails,
-                        chipNumber=chipNumber,
-                        location=location,
-                        dogFoundOn=dogFoundOn
-        )
+        # Map the DogRequest to DogDTO
+        dogDTO = mapper.to(DogDTO).map(dogRequest, fields_mapping={
+            "images": []
+        })
+        dogDTO.images = [DogImageDTO(base64Image=base64Image[0], imageContentType=base64Image[1]) for base64Image in base64Images]
+
+        # dogDTO = DogDTO(type=type.value,
+        #                 images=[DogImageDTO(id=None, base64Image=base64Image[0], imageContentType=base64Image[1]) for base64Image in base64Images],
+        #                 contactName=contactName, 
+        #                 contactPhone=contactPhone, 
+        #                 contactEmail=contactEmail, 
+        #                 contactAddress=contactAddress,
+        #                 isVerified=IS_VERIFIED_FIELD_DEFAULT_VALUE,
+        #                 breed=breed,
+        #                 size=size,
+        #                 color=color,
+        #                 sex=sex,
+        #                 extraDetails=extraDetails,
+        #                 chipNumber=chipNumber,
+        #                 location=location,
+        #                 dogFoundOn=dogFoundOn
+        # )
 
         dogDTO, result = dogWithImagesService.add_dog_with_images(dogDTO)
 
@@ -448,19 +452,43 @@ async def doc_matched(foundRequest: DogMatchedRequest):
 
 # build a predicate for the properties, breed, type, if they are not None with and_ between them
 @timeit
-def build_filter(queryRequest: QueryRequest) -> Optional[Filter]:
-    logger.info(f"Building the filter for queryRequest: {queryRequest}")
+def build_filter(dogSearchRequest: DogSearchRequest) -> Optional[Filter]:
+    logger.info(f"Building the filter for queryRequest: {dogSearchRequest}")
 
     # create a list of predicates
     predicates = []
 
-    # add breed predicate
-    if queryRequest.breed is not None:
-        predicates.append(Predicate(["breed"], "Equal", queryRequest.breed, FilterValueTypes.valueText))
-
     # add type predicate
-    if queryRequest.type is not None:
-        predicates.append(Predicate(["type"], "Equal", queryRequest.type.value, FilterValueTypes.valueText))
+    if dogSearchRequest.type is not None:
+        predicates.append(Predicate(["type"], "Equal", dogSearchRequest.type.value, FilterValueTypes.valueText))
+
+    # add breed predicate
+    if dogSearchRequest.breed is not None:
+        predicates.append(Predicate(["breed"], "Equal", dogSearchRequest.breed, FilterValueTypes.valueText))
+
+    # add sex predicate
+    if dogSearchRequest.sex is not None:
+        predicates.append(Predicate(["sex"], "Equal", dogSearchRequest.sex.value, FilterValueTypes.valueText))
+
+    # add size predicate
+    if dogSearchRequest.size is not None:
+        predicates.append(Predicate(["size"], "Equal", dogSearchRequest.size.value, FilterValueTypes.valueText))
+
+    # add color predicate
+    if dogSearchRequest.color is not None:
+        predicates.append(Predicate(["color"], "Equal", dogSearchRequest.color.value, FilterValueTypes.valueText))
+
+    # add chipNumber predicate
+    if dogSearchRequest.chipNumber is not None:
+        predicates.append(Predicate(["chipNumber"], "Equal", dogSearchRequest.chipNumber, FilterValueTypes.valueText))
+
+    # add name predicate
+    if dogSearchRequest.name is not None:
+        predicates.append(Predicate(["name"], "Equal", dogSearchRequest.name, FilterValueTypes.valueText))
+
+    # add location predicate
+    if dogSearchRequest.location is not None:
+        predicates.append(Predicate(["location"], "Equal", dogSearchRequest.location, FilterValueTypes.valueText))
 
     # add isVerified predicate
     # Commented out because we want to return verified and unverified dogs for now until we have a way to verify them
@@ -479,19 +507,19 @@ def build_filter(queryRequest: QueryRequest) -> Optional[Filter]:
 
 
 
-def query_vector_db(queryRequest: QueryRequest, query: Optional[str] = None):
+def query_vector_db(dogSearchRequest: DogSearchRequest):
     # Open the image from the base64 string to PIL Image
-    query_image = create_pil_images([queryRequest.imageBase64])[0]
+    query_image = create_pil_images([dogSearchRequest.base64Image])[0]
 
     # Embed the query image
     query_embedding = embed_query(query_image, embedding_model)
 
     # Build the filter with conditions to query the vector db
-    filter = build_filter(queryRequest)
+    filter = build_filter(dogSearchRequest)
 
     # Query the database
     logger.info(f"Querying the database")
-    results = vecotrDBClient.query(class_name="Dog", query=query, query_embedding=query_embedding, limit=queryRequest.top, offset=None, filter=filter.to_dict(), properties=queryRequest.return_properties)
+    results = vecotrDBClient.query(class_name="Dog", query_embedding=query_embedding, limit=dogSearchRequest.top, offset=None, filter=filter.to_dict(), properties=dogSearchRequest.return_properties)
 
     return results
 
@@ -507,11 +535,15 @@ def handle_uploaded_images(imgs):
     """
     images = []
     for img in imgs:
-        # Read the image content from the uploaded file
-        img_content = img.file.read()
+        # Check if file is an UploadFile image or base64 image
+        if isinstance(img, UploadFile):
+            # Read the image content from the uploaded file
+            img_content = img.file.read()
 
-        # Convert the image content to base64 format
-        img_base64 = get_base64(img_content)
+            # Convert the image content to base64 format
+            img_base64 = get_base64(img_content)
+        else:
+            img_base64 = img
 
         # Resize the image and convert it to the desired format
         img_base64, img_content_type = resize_image_and_convert_to_format(img_base64, (1024, 1024))
