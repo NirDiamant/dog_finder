@@ -9,4 +9,4 @@ Pillow
 sentence_transformers
 sqlalchemy
 sqlalchemy_utils
-psycopg2
+psycopg2-binary
