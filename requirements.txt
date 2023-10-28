@@ -9,5 +9,6 @@ Pillow
 sentence_transformers
 sqlalchemy
 sqlalchemy_utils
+psycopg2
 # dependency_injector
 py-automapper
