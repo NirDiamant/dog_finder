@@ -135,11 +135,11 @@ class WeaviateVectorDBClient(IVectorDBClient):
             return { "success": False, "message": f"Error deleting all documents of '{class_name}' class from the vectordb: {e}" }
    
     @timeit
-    def query(self, class_name: str, query: str, query_embedding: List[float], limit: int = None, offset: int = None, filter: Dict[str, Any] = None, properties: List[str] = None):
+    def query(self, class_name: str, query_embedding: List[float], limit: int = None, offset: int = None, filter: Dict[str, Any] = None, properties: List[str] = None):
         """
         Queries the model with a given query and returns best matches.
         """
-        logger.info(f"Querying the vector db with query: {query} and query_embedding length: {len(query_embedding) if query_embedding is not None else None}, filter: {filter}, limit: {limit}, offset: {offset}, properties: {properties}")
+        logger.info(f"Querying the vector db with query_embedding length: {len(query_embedding) if query_embedding is not None else None}, filter: {filter}, limit: {limit}, offset: {offset}, properties: {properties}")
         
         # Query the database
         logger.info(f"Querying the database")

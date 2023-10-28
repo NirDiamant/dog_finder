@@ -3,7 +3,7 @@ import json
 import os
 from datetime import datetime
 
-from sqlalchemy import Column, String, ForeignKey, DateTime, Enum, Boolean, Integer
+from sqlalchemy import Column, String, ForeignKey, DateTime, Enum, Boolean, Integer, Date
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -29,16 +29,16 @@ class Dog(Base):
 
     ## dog attributes
     name = Column(String)
-    chipNumber = Column(String(length=15))
     breed = Column(String)
     color = Column(String)
     size = Column(String)
     sex = Column(DOG_SEX_ENUMS)
+    chipNumber = Column(String(length=15))
     location = Column(String)
     extraDetails = Column(String)
 
     ## change times
-    dogFoundOn = Column(DateTime, default=datetime.utcnow)
+    dogFoundOn = Column(Date, default=datetime.utcnow)
     createdAt = Column(DateTime, default=datetime.utcnow)
     updatedAt = Column(DateTime, onupdate=datetime.utcnow)
 

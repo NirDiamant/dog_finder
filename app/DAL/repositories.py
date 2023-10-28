@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from automapper import mapper
 from app.DTO.dog_dto import DogDTO, DogImageDTO
 from sqlalchemy.orm import subqueryload
+from app.MyLogger import logger
 
 class DogWithImagesRepository:
     def __init__(self, session_factory: Callable[..., AbstractContextManager[Session]]) -> None:
@@ -33,6 +34,12 @@ class DogWithImagesRepository:
                 return dogDTO
         except SQLAlchemyError as e:
             # Rollback transaction on error
+            logger.error(f"DB Error while adding dog with images: {e}")
+            session.rollback()
+            raise e
+        except Exception as e:
+            # Rollback transaction on error
+            logger.error(f"Error while adding dog with images: {e}")
             session.rollback()
             raise e
         finally:
