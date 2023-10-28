@@ -209,7 +209,7 @@ auth = VerifyToken()
 #         # return back a json response and set the status code to api_response.status_code
 #         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
-@router.post("/search_in_found_dogs/", response_model=APIResponse)
+@router.post("/search_in_found_dogs", response_model=APIResponse)
 async def search_in_found_dogs(dogSearchRequest: DogSearchRequest):
     try:
         # Handle the image, resize it and convert it to base64 with webp format and get the content type
@@ -231,7 +231,7 @@ async def search_in_found_dogs(dogSearchRequest: DogSearchRequest):
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
-@router.post("/search_in_lost_dogs/", response_model=APIResponse)
+@router.post("/search_in_lost_dogs", response_model=APIResponse)
 async def search_in_lost_dogs(dogSearchRequest: DogSearchRequest):
     try:
         # Handle the image, resize it and convert it to base64 with webp format and get the content type
@@ -254,7 +254,7 @@ async def search_in_lost_dogs(dogSearchRequest: DogSearchRequest):
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
-@router.get("/get_unverified_documents/", response_model=APIResponse)
+@router.get("/get_unverified_documents", response_model=APIResponse)
 async def get_unverified_documents(auth_result: str = Security(auth.verify, scopes=['read:unverified_documents'])):
     try:
         # Query the database
@@ -269,7 +269,7 @@ async def get_unverified_documents(auth_result: str = Security(auth.verify, scop
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
     
 # Endpoint for quering the database without the need for a query image, only DOG_ID_FIELD
-@router.get("/get_dog_by_id/", response_model=APIResponse)
+@router.get("/get_dog_by_id", response_model=APIResponse)
 async def get_dog_by_id(dogId: int):
     try:
         # Query the database
@@ -287,8 +287,8 @@ async def get_dog_by_id(dogId: int):
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 # Endpoint for quering the database without the need for a query image, only DOG_ID_FIELD
-@router.get("/get_dog_by_id_full_details/", response_model=APIResponse)
-async def query_by_dog_id(dogId: int, auth_result: str = Security(auth.verify, scopes=['read:dogs:by_id'])):
+@router.get("/get_dog_by_id_full_details", response_model=APIResponse)
+async def query_by_dog_id(dogId: int, auth_result: str = Security(auth.verify, scopes=['read:get_dog_by_id_full_details'])):
     try:
         # Query the database
         dog = dogWithImagesRepository.get_dog_with_images_by_id(dogId)
@@ -442,7 +442,7 @@ async def clean_all():
     return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.post("/doc_matched", response_model=APIResponse)
-async def doc_matched(foundRequest: DogMatchedRequest):
+async def doc_matched(foundRequest: DogMatchedRequest, auth_result: str = Security(auth.verify, scopes=['write:dog_matched'])):
 
     result = dogWithImagesService.update_dog_is_matched(foundRequest.dogId, True)
 
