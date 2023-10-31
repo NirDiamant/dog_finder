@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.init.exception_handler import setup_exacption_handler
 from pydantic_settings import BaseSettings
 
 from app.MyLogger import logger
@@ -19,6 +20,7 @@ logger.info("Starting up the app")
 
 origins = [f"{os.environ.get('ALLOWED_CORS', 'https://localhost:3000')}"]
 
+setup_exacption_handler(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

@@ -17,10 +17,11 @@ console = logging.StreamHandler()
 console.setFormatter(fmt)
 logger.addHandler(console)
 
-if (os.path.exists("/var/log/")):
+if (os.path.exists(os.getenv("LOGGER_ROOT_PATH"))):
     # create folder if it doesn't exist
-    if not os.path.exists("/var/log/dogfinder"):
-        os.makedirs("/var/log/dogfinder")
-    fileHandler = RotatingFileHandler('/var/log/dogfinder/dogfinder.log', maxBytes=10000000, backupCount=5)
+    logger_app_path = f"{os.getenv('LOGGER_ROOT_PATH')}/dogfinder"
+    if not os.path.exists(logger_app_path):
+        os.makedirs(logger_app_path)
+    fileHandler = RotatingFileHandler(f"{logger_app_path}/dogfinder.log", maxBytes=10000000, backupCount=5)
     fileHandler.setFormatter(fmt)
     logger.addHandler(fileHandler)

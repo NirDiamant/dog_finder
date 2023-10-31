@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-PyJWT
+pyjwt[crypto]
 cachetools
 python-multipart
 pydantic-settings

@@ -18,6 +18,7 @@ class DogImageDTO(BaseModel):
 
 class DogDTO(BaseModel):
     id: Optional[int] = None
+    reporterId: str 
     images: List[DogImageDTO]
     type: DogType
     isMatched: bool = False

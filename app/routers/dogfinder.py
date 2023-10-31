@@ -255,7 +255,7 @@ async def search_in_lost_dogs(dogSearchRequest: DogSearchRequest):
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.get("/get_unverified_documents", response_model=APIResponse)
-async def get_unverified_documents(auth_result: str = Security(auth.verify, scopes=['read:unverified_documents'])):
+async def get_unverified_documents(auth_result: dict = Security(auth.verify, scopes=['read:unverified_documents'])):
     try:
         # Query the database
         results = vecotrDBClient.query(class_name="Dog", query=None, query_embedding=None, limit=10000, offset=None, filter=and_(*[Predicate(["isVerified"], "Equal", False, FilterValueTypes.valueBoolean)]).to_dict(), properties=RETURN_PROPERTIES)
@@ -288,7 +288,7 @@ async def get_dog_by_id(dogId: int):
 
 # Endpoint for quering the database without the need for a query image, only DOG_ID_FIELD
 @router.get("/get_dog_by_id_full_details", response_model=APIResponse)
-async def query_by_dog_id(dogId: int, auth_result: str = Security(auth.verify, scopes=['read:get_dog_by_id_full_details'])):
+async def query_by_dog_id(dogId: int, auth_result: dict = Security(auth.verify, scopes=['read:get_dog_by_id_full_details'])):
     try:
         # Query the database
         dog = dogWithImagesRepository.get_dog_with_images_by_id(dogId)
@@ -305,7 +305,7 @@ async def query_by_dog_id(dogId: int, auth_result: str = Security(auth.verify, s
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.post("/add_document", response_model=APIResponse)
-async def add_document(dogRequest: DogAddRequest):
+async def add_document(dogRequest: DogAddRequest, auth_result: dict = Security(auth.verify)):
     # logger.info(f"Document Request: {documentRequest}")
 
     try:
@@ -317,7 +317,7 @@ async def add_document(dogRequest: DogAddRequest):
         # Create DogDocument
         # Map the DogRequest to DogDTO
         dogDTO = mapper.to(DogDTO).map(dogRequest, fields_mapping={
-            "images": []
+            "images": [], "reporterId": auth_result["azp"]
         })
         dogDTO.images = [DogImageDTO(base64Image=base64Image[0], imageContentType=base64Image[1]) for base64Image in base64Images]
 
@@ -342,7 +342,7 @@ async def add_document(dogRequest: DogAddRequest):
 
         api_response = APIResponse(status_code=200, message=f"Added documents to the vecotrdb", data=dogDTO.model_dump(), meta=result)
     except Exception as e:
-        logger.error(f"Error while adding documents to the vecotrdb: {e}")
+        logger.exception(f"Error while adding documents to the vecotrdb: {e}")
         api_response = APIResponse(status_code=500, message=f"Error while adding documents to the vecotrdb: {e}")
     finally:
         # return back a json response and set the status code to api_response.status_code
@@ -426,7 +426,7 @@ async def get_schema(class_name: str):
     return vecotrDBClient.get_schema(class_name)
 
 @router.delete("/clean_all", response_model=APIResponse)
-async def clean_all():
+async def clean_all(auth_result: str = Security(auth.verify, scopes=['delete:clean_all'])):
     logger.info("Deleting all documents from the vectordb")
 
     # Delete all objects from the database
