@@ -317,7 +317,7 @@ async def add_document(dogRequest: DogAddRequest, auth_result: dict = Security(a
         # Create DogDocument
         # Map the DogRequest to DogDTO
         dogDTO = mapper.to(DogDTO).map(dogRequest, fields_mapping={
-            "images": [], "reporterId": auth_result["azp"]
+            "images": [], "reporterId": auth_result["sub"]
         })
         dogDTO.images = [DogImageDTO(base64Image=base64Image[0], imageContentType=base64Image[1]) for base64Image in base64Images]
 
