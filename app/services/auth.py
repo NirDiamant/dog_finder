@@ -1,9 +1,14 @@
 import os
+import logging
 from typing import Optional
+from app.exceptions.auth_exceptions import UnauthenticatedException, UnauthorizedException
 
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import SecurityScopes, HTTPAuthorizationCredentials, HTTPBearer
+
+logger = logging.getLogger(__name__)
+
 
 def get_auth0_config():
     """Sets up configuration for the app"""
@@ -21,18 +26,6 @@ def get_auth0_config():
             exit(1)
     return config
 
-class UnauthorizedException(HTTPException):
-    def __init__(self, detail: str, **kwargs):
-        """Returns HTTP 403"""
-        super().__init__(status.HTTP_403_FORBIDDEN, detail=detail)
-
-
-class UnauthenticatedException(HTTPException):
-    def __init__(self):
-        super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Requires authentication"
-        )
-
 
 class VerifyToken:
     def __init__(self):
@@ -48,9 +41,10 @@ class VerifyToken:
                      security_scopes: SecurityScopes,
                      token: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer())
                      ):
+        
         # If no token is provided, raise an exception indicating lack of authentication
         if token is None:
-            raise UnauthenticatedException
+            raise UnauthenticatedException("No token provided")
 
         try:
             # Fetch the signing key associated with the provided JWT
@@ -59,9 +53,9 @@ class VerifyToken:
             ).key
         # Handle exceptions related to JWKS client or JWT decoding errors
         except jwt.exceptions.PyJWKClientError as error:
-            raise UnauthorizedException(str(error))
+            raise UnauthorizedException("Problem with JWT") from error
         except jwt.exceptions.DecodeError as error:
-            raise UnauthorizedException(str(error))
+            raise UnauthorizedException("jwt decoding problem") from error
 
         try:
             # Decode and verify the JWT using the fetched signing key
@@ -74,7 +68,7 @@ class VerifyToken:
             )
         # Handle exceptions related to JWT decoding
         except Exception as error:
-            raise UnauthorizedException(str(error))
+            raise UnauthorizedException("could not decode JWT") from error
 
         # Check if there are any specific security scopes to verify
         if len(security_scopes.scopes) > 0:

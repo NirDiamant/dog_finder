@@ -17,6 +17,7 @@ class Dog(Base):
     # Dog data
     ## Entry data
     id = Column(Integer, primary_key=True, autoincrement=True)
+    reporterId = Column(String)
     type = Column(DOG_TYPE_ENUMS, nullable=False) # vectordb will use this field DO NOT REMOVE
     isMatched = Column(Boolean, default=False)
     isVerified = Column(Boolean, default=False)

@@ -75,6 +75,7 @@ class DogImageResponse(BaseModel):
 
 class DogResponse(BaseModel):
     id: int
+    reporterId: str
     images: List[DogImageResponse]
     type: DogType
     isMatched: bool = False
