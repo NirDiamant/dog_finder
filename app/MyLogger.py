@@ -17,7 +17,7 @@ console = logging.StreamHandler()
 console.setFormatter(fmt)
 logger.addHandler(console)
 
-if (os.path.exists(os.getenv("LOGGER_ROOT_PATH"))):
+if (os.getenv("LOGGER_ROOT_PATH") is not None and os.path.exists(os.getenv("LOGGER_ROOT_PATH"))):
     # create folder if it doesn't exist
     logger_app_path = f"{os.getenv('LOGGER_ROOT_PATH')}/dogfinder"
     if not os.path.exists(logger_app_path):

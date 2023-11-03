@@ -2,6 +2,7 @@
 from datetime import datetime
 from typing import Any, List
 from app.DAL.models import Dog, DogImage
+from app.DTO.dog_dto import DogDTO, DogImageDTO
 # from app.DTO.dog_dto import DogDTO
 from app.helpers.image_helper import create_pil_images
 from app.services.ivectordb_client import IVectorDBClient
@@ -14,23 +15,23 @@ class VectorDBIndexer:
         self.vecotrDBClient = vecotrDBClient
         self.embedding_model = embedding_model
 
-    def index_dogs_with_images(self, dogs: list[Dog]) -> None:
+    def index_dogs_with_images(self, dogDTOs: list[DogDTO]) -> None:
         # Add the document to the database
         documents = []
 
         # iterate over dogs and each image for each dog and create a list of data_properties, add them to documents. Add the documents to the database
-        for dog in dogs:
+        for dogDTO in dogDTOs:
             # Create a list of PIL images from the base64 images
-            pilImages = create_pil_images([image.base64Image for image in dog.images])
+            pilImages = create_pil_images([image.base64Image for image in dogDTO.images])
 
             # Embed the document image
             dog_images_embedding = embed_query(pilImages, self.embedding_model)
 
             try:
-                for i, dogImage in enumerate(dog.images):
-                    logger.info(f"Adding document {dog.id} with image id {dogImage.id} to VectorDB")
-                    data_properties = create_data_properties(dog, dogImage)
-                    data_properties["uuid5"] = generate_uuid5({"dogId": dog.id, "imageId": dogImage.id })
+                for i, dogImage in enumerate(dogDTO.images):
+                    logger.info(f"Adding document {dogDTO.id} with image id {dogImage.id} to VectorDB")
+                    data_properties = create_data_properties(dogDTO, dogImage)
+                    data_properties["uuid5"] = generate_uuid5({"dogId": dogDTO.id, "imageId": dogImage.id })
                     data_properties["document_embedding"] = dog_images_embedding[i]
                     documents.append(data_properties)
             except Exception as e:
@@ -51,7 +52,7 @@ class VectorDBIndexer:
 
         return result
 
-def create_data_properties(dog: Dog, dogImage: DogImage) -> dict[str, Any]:
+def create_data_properties(dog: DogDTO, dogImage: DogImageDTO) -> dict[str, Any]:
     # Transform document to dictionary
     data_properties = dog.to_vectordb_json()
     

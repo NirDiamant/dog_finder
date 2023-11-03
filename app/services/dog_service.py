@@ -12,12 +12,12 @@ class DogWithImagesService:
         self.vectordbIndexer = vectordbIndexer
 
     def add_dog_with_images(self, dogDTO: DogDTO) -> Dog:
-        dog = self.repository.add_dog_with_images(dogDTO)
+        newDogDTO = self.repository.add_dog_with_images(dogDTO)
 
         # Add the dog to the vector database
-        result = self.vectordbIndexer.index_dogs_with_images([dog])
+        result = self.vectordbIndexer.index_dogs_with_images([newDogDTO])
 
-        return dog, result
+        return newDogDTO, result
 
     def get_dog_with_images_by_id(self, dog_id: int) -> DogDTO:
         return self.repository.get_dog_with_images_by_id(dog_id)

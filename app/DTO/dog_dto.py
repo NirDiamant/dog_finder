@@ -64,7 +64,8 @@ class DogDTO(BaseModel):
             "color": self.color,
             "size": self.size,
             "sex": self.sex,
-            "location": self.location
+            "location": self.location,
+            "dogFoundOn": self.dogFoundOn.isoformat() if self.dogFoundOn else None,
         }
         
         return vectordb_json

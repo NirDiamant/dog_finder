@@ -3,7 +3,26 @@ from enum import Enum
 from typing import List, Optional
 from pydantic import BaseModel, field_serializer
 
-RETURN_PROPERTIES = ["type", "breed", "size", "color", "sex", "extraDetails", "location", "imageBase64", "isMatched", "dogId", "contactName", "contactPhone", "contactEmail", "contactAddress", "isVerified", "imageContentType","chipNumber"]
+RETURN_PROPERTIES = [
+    "type",
+    "breed",
+    "size",
+    "color",
+    "sex",
+    "extraDetails",
+    "location",
+    "imageBase64",
+    "isMatched",
+    "dogId",
+    "contactName",
+    "contactPhone",
+    "contactEmail",
+    "contactAddress",
+    "isVerified",
+    "imageContentType",
+    "chipNumber",
+    "dogFoundOn"
+]
 
 class DogType(str, Enum):
     FOUND: str = "found"

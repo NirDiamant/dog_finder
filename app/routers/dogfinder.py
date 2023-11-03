@@ -141,6 +141,11 @@ dog_class_definition = {
                 "name": "name",
                 "dataType": ["text"],
                 "description": "The name of the dog if exists"
+            },
+            {
+                "name": "dogFoundOn",
+                "dataType": ["text"],
+                "description": "The date the dog was found"
             }
         ]
     }
