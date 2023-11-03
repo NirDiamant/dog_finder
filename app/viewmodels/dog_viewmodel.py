@@ -12,7 +12,7 @@ RETURN_PROPERTIES = [
     "extraDetails",
     "location",
     "imageBase64",
-    "isMatched",
+    "isResolved",
     "dogId",
     "contactName",
     "contactPhone",
@@ -40,14 +40,14 @@ class DogSex(str, Enum):
 #     return_properties: Optional[List[str]] = RETURN_PROPERTIES
 #     isVerified: Optional[bool] = True
 
-class DogMatchedRequest(BaseModel):
+class DogResolvedRequest(BaseModel):
     dogId: int
 
 class DogSearchRequest(BaseModel):
     top: Optional[int] = 10
     type: Optional[DogType] = None
     base64Image: str
-    isMatched: Optional[bool] = False
+    isResolved: Optional[bool] = False
     isVerified: Optional[bool] = True
 
     name: Optional[str] = None
@@ -63,7 +63,7 @@ class DogSearchRequest(BaseModel):
 class DogAddRequest(BaseModel):
     base64Images: List[str]
     type: DogType
-    isMatched: bool = False
+    isResolved: bool = False
     isVerified: bool = False
 
     ## Contact details
@@ -97,7 +97,7 @@ class DogResponse(BaseModel):
     reporterId: str
     images: List[DogImageResponse]
     type: DogType
-    isMatched: bool = False
+    isResolved: bool = False
     isVerified: bool = False
     # I'm putting all of these as optional for now
     name: Optional[str] = None
@@ -125,7 +125,7 @@ class DogFullDetailsResponse(BaseModel):
     id: int
     images: List[DogImageResponse]
     type: DogType
-    isMatched: bool = False
+    isResolved: bool = False
     isVerified: bool = False
 
     ## Contact details

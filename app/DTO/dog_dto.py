@@ -21,7 +21,7 @@ class DogDTO(BaseModel):
     reporterId: str 
     images: List[DogImageDTO]
     type: DogType
-    isMatched: bool = False
+    isResolved: bool = False
     isVerified: bool = False
 
     ## Contact details
@@ -56,7 +56,7 @@ class DogDTO(BaseModel):
     def to_vectordb_json(self):
         vectordb_json = {
             "type": self.type,
-            "isMatched": self.isMatched,
+            "isResolved": self.isResolved,
             "isVerified": self.isVerified,
             "name": self.name,
             "chipNumber": self.chipNumber,
