@@ -1,7 +1,7 @@
 from datetime import date
 from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, field_serializer, validator
 
 RETURN_PROPERTIES = [
     "type",
@@ -86,6 +86,13 @@ class DogAddRequest(BaseModel):
     
     class Config:
         use_enum_values = True
+        
+    @validator("*", pre=True)
+    def empty_strings_to_none(cls, value):
+        if isinstance(value, str) and not value:
+            return None
+        return value
+    
 
 class DogImageResponse(BaseModel):
     id: int
