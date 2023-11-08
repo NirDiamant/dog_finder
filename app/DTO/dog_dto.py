@@ -47,11 +47,8 @@ class DogDTO(BaseModel):
     def dogFoundOn_serializer(self, v: date, _info):
         return v.isoformat() if v else None
 
-    
-
     class Config:
         use_enum_values = True
-
     
     def to_vectordb_json(self):
         vectordb_json = {
@@ -69,3 +66,10 @@ class DogDTO(BaseModel):
         }
         
         return vectordb_json
+
+class PossibleDogMatchDTO(BaseModel):
+    dogId: int
+    possibleMatchId: int
+
+    dog: Optional[DogDTO] = None
+    possibleMatch: Optional[DogDTO] = None

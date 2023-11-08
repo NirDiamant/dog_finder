@@ -1,6 +1,6 @@
 import hashlib
 import uuid
-from app.DTO.dog_dto import DogDTO, DogImageDTO, DogType
+from app.DTO.dog_dto import DogDTO, DogImageDTO, DogType, PossibleDogMatchDTO
 from app.helpers.image_helper import create_pil_images, get_base64
 from app.services.auth import VerifyToken
 from typing import Any, List, Optional
@@ -8,7 +8,7 @@ from app.MyLogger import logger
 from app.services.dog_service import DogWithImagesService
 from app.services.vectordb_indexer import VectorDBIndexer
 from app.viewmodels.api_response import APIResponse
-from app.viewmodels.dog_viewmodel import RETURN_PROPERTIES, DogFullDetailsResponse, DogImageResponse, DogAddRequest, DogResolvedRequest, DogResponse, DogSearchRequest
+from app.viewmodels.dog_viewmodel import RETURN_PROPERTIES, DogFullDetailsResponse, DogImageResponse, DogAddRequest, DogResolvedRequest, DogResponse, DogSearchRequest, PossibleDogMatchRequest
 from fastapi import APIRouter, File, Form, Security, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -291,6 +291,27 @@ async def get_dog_by_id(dogId: int):
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
+# Create endpoint for adding possible dog match, using the dogId and possibleMatchId
+@router.post("/add_possible_dog_match", response_model=APIResponse)
+async def add_possible_dog_match(possibleDogMatchRequest: PossibleDogMatchRequest):
+    try:
+        # Create PossibleDogMatchDTO
+        possibleDogMatchDTO = mapper.to(PossibleDogMatchDTO).map(possibleDogMatchRequest)
+
+        # Add the possible dog match to the database
+        result = dogWithImagesService.add_possible_dog_match(possibleDogMatchDTO)
+
+        api_response = APIResponse(status_code=200, message=f"Added possible dog match to the database")
+    except Exception as e:
+        logger.error(f"Error while adding possible dog match to the database: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while adding possible dog match to the database: {e}")
+    finally:
+        # return back a json response and set the status code to api_response.status_code
+        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+    
+
+
+
 # Commented out for now because the new flow is reveling the contact details for everyone
 # Endpoint for quering the database without the need for a query image, only DOG_ID_FIELD
 # @router.get("/get_dog_by_id_full_details", response_model=APIResponse)
@@ -318,7 +339,6 @@ async def add_document(dogRequest: DogAddRequest, auth_result: dict = Security(a
         # Handle the image, resize it and convert it to base64 with webp format and get the content type
         # Unzip the array of tuples coming back from handle_uploaded_images
         base64Images = handle_uploaded_images(dogRequest.base64Images)
-        # base64Images, imageContentTypes = zip(*handle_uploaded_images(imgs))
 
         # Create DogDocument
         # Map the DogRequest to DogDTO
@@ -326,23 +346,6 @@ async def add_document(dogRequest: DogAddRequest, auth_result: dict = Security(a
             "images": [], "reporterId": auth_result["sub"]
         })
         dogDTO.images = [DogImageDTO(base64Image=base64Image[0], imageContentType=base64Image[1]) for base64Image in base64Images]
-
-        # dogDTO = DogDTO(type=type.value,
-        #                 images=[DogImageDTO(id=None, base64Image=base64Image[0], imageContentType=base64Image[1]) for base64Image in base64Images],
-        #                 contactName=contactName, 
-        #                 contactPhone=contactPhone, 
-        #                 contactEmail=contactEmail, 
-        #                 contactAddress=contactAddress,
-        #                 isVerified=IS_VERIFIED_FIELD_DEFAULT_VALUE,
-        #                 breed=breed,
-        #                 size=size,
-        #                 color=color,
-        #                 sex=sex,
-        #                 extraDetails=extraDetails,
-        #                 chipNumber=chipNumber,
-        #                 location=location,
-        #                 dogFoundOn=dogFoundOn
-        # )
 
         dogDTO, result = dogWithImagesService.add_dog_with_images(dogDTO)
 
@@ -353,59 +356,6 @@ async def add_document(dogRequest: DogAddRequest, auth_result: dict = Security(a
     finally:
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
-
-# @router.post("/add_documents", response_model=APIResponse)
-# async def add_documents(documentRequest: DocumentRequest):
-#     logger.info(f"Document Request: {documentRequest}")
-
-#     try:
-#         # Add the documents to the database
-#         documents_length = len(documentRequest.documents)
-#         logger.info(f"Adding {documents_length} documents")
-#         documents = []
-
-#         # Create the embedding model
-#         logger.info(f"Creating embedding model")
-#         embedding_model, cache_info = create_embedding_model()
-
-#         # Set every new document to not verified
-#         for document in documentRequest.documents:
-#             document.isVerified = IS_VERIFIED_FIELD_DEFAULT_VALUE
-#             document.imageBase64, document.imageContentType = resize_image_and_convert_to_format(document.imageBase64, (500, 500))
-
-#         # Embed the documents images
-#         embedding_results = embed_documents([create_pil_image(document.imageBase64) for document in documentRequest.documents], embedding_model)
-#         request_dog_id = generate_dog_id()
-
-#         # Iterate over the documents and add them to the database
-#         for i, document in enumerate(documentRequest.documents):
-#             try:
-#                 # Create the data object
-#                 data_properties = create_data_properties(document, request_dog_id)
-
-#                 # Create a uuid based on the filename
-#                 data_properties[UUID_FIELD] = generate_uuid5({"breed": document.breed, "type": document.type, "imageHash": hash_image(document.imageBase64)})
-
-#                 # Embed the document
-#                 logger.info(f"Setting Embedding document [{document.filename}] {i+1} of {documents_length}")
-#                 data_properties["document_embedding"] = embedding_results[i]
-
-
-#                 documents.append(data_properties)
-#             except Exception as e:
-#                 logger.error(f"Error while creating data_properties for document [{document.filename}] {i+1} of {documents_length}: {e}")
-
-#         # Add the documents to the database
-#         logger.info(f"Add documents batch")
-#         result = vecotrDBClient.add_documents_batch("Dog", documents)
-
-#         api_response = APIResponse(status_code=200, message=f"Added documents to the vecotrdb", data=result)
-#     except Exception as e:
-#         logger.error(f"Error while adding documents to the vecotrdb: {e}")
-#         api_response = APIResponse(status_code=500, message=f"Error while adding documents to the vecotrdb: {e}")
-#     finally:
-#         # return back a json response and set the status code to api_response.status_code
-#         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 # Add an endpoint to set isVerified to True
 @router.post("/verify_document", response_model=APIResponse)

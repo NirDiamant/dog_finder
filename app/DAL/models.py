@@ -56,3 +56,15 @@ class DogImage(Base):
     updatedAt = Column(DateTime, onupdate=datetime.utcnow)
 
     dog = relationship('Dog', back_populates='images')
+
+
+class PossibleDogMatch(Base):
+    __tablename__ = 'possible_dog_matches'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    dogId = Column(Integer, ForeignKey('dogs.id'))
+    possibleMatchId = Column(Integer, ForeignKey('dogs.id'))
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    updatedAt = Column(DateTime, onupdate=datetime.utcnow)
+
+    dog = relationship('Dog', foreign_keys=[dogId])
+    possibleMatch = relationship('Dog', foreign_keys=[possibleMatchId])

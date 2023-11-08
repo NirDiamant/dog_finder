@@ -87,6 +87,10 @@ class DogAddRequest(BaseModel):
     class Config:
         use_enum_values = True
 
+class PossibleDogMatchRequest(BaseModel):
+    dogId: int
+    possibleMatchId: int
+
 class DogImageResponse(BaseModel):
     id: int
     base64Image: str

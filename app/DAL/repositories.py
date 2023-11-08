@@ -2,10 +2,10 @@
 from contextlib import AbstractContextManager
 from typing import Callable
 from sqlalchemy.orm import Session
-from app.DAL.models import Dog, DogImage
+from app.DAL.models import Dog, DogImage, PossibleDogMatch
 from sqlalchemy.exc import SQLAlchemyError
 from automapper import mapper
-from app.DTO.dog_dto import DogDTO, DogImageDTO
+from app.DTO.dog_dto import DogDTO, DogImageDTO, PossibleDogMatchDTO
 from sqlalchemy.orm import subqueryload
 from app.MyLogger import logger
 
@@ -93,4 +93,46 @@ class DogWithImagesRepository:
         except SQLAlchemyError as e:
             raise e
         finally:
+            session.close()
+
+    def add_possible_dog_match(self, possibleDogMatchDTO: PossibleDogMatchDTO) -> None:
+        try:
+            with self.session_factory() as session:
+                # Create dog object                
+                possibleDogMatch: PossibleDogMatch = mapper.to(PossibleDogMatch).map(possibleDogMatchDTO)
+
+                # Fetch the Dog instances
+                dog = session.query(Dog).get(possibleDogMatch.dogId)
+                possibleMatch = session.query(Dog).get(possibleDogMatch.possibleMatchId)
+
+                # Assign the Dog instances
+                possibleDogMatch.dog = dog
+                possibleDogMatch.possibleMatch = possibleMatch
+
+                session.add(possibleDogMatch)
+                session.commit()
+
+                session.refresh(possibleDogMatch)
+
+                # Returning the possibleDogMatchDTO with the dog and possibleMatch instances
+                # Remarking for now if it's not really needed
+                # possibleDogMatchDTO = mapper.to(PossibleDogMatchDTO).map(possibleDogMatch, fields_mapping={ "dog": None, "possibleMatch": None })
+                # possibleDogMatchDTO.dog = mapper.to(DogDTO).map(dog, fields_mapping={ "images": [] })
+                # possibleDogMatchDTO.dog.images = [mapper.to(DogImageDTO).map(image) for image in dog.images]
+                # possibleDogMatchDTO.possibleMatch = mapper.to(DogDTO).map(possibleMatch, fields_mapping={ "images": [] })
+                # possibleDogMatchDTO.possibleMatch.images = [mapper.to(DogImageDTO).map(image) for image in possibleMatch.images]
+
+                # return possibleDogMatchDTO
+        except SQLAlchemyError as e:
+            # Rollback transaction on error
+            logger.exception(f"DB Error while adding possible dog match: {e}")
+            session.rollback()
+            raise e
+        except Exception as e:
+            # Rollback transaction on error
+            logger.exception(f"Error while adding possible dog match: {e}")
+            session.rollback()
+            raise e
+        finally:
+            # Close session
             session.close()
