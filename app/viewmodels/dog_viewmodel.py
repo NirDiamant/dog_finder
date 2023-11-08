@@ -94,6 +94,10 @@ class DogAddRequest(BaseModel):
         return value
     
 
+class PossibleDogMatchRequest(BaseModel):
+    dogId: int
+    possibleMatchId: int
+
 class DogImageResponse(BaseModel):
     id: int
     base64Image: str

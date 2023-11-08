@@ -2,7 +2,7 @@
 # will use DogWithImagesRepository to get the dog images from the DB and into the DB
 from app.DAL.models import Dog
 from app.DAL.repositories import DogWithImagesRepository
-from app.DTO.dog_dto import DogDTO
+from app.DTO.dog_dto import DogDTO, PossibleDogMatchDTO
 from app.services.vectordb_indexer import VectorDBIndexer
 
 
@@ -32,3 +32,7 @@ class DogWithImagesService:
         result = self.vectordbIndexer.delete_dogs_with_images([Dog(id=dog_id)])
 
         return result
+    
+    def add_possible_dog_match(self, possibleDogMathcDTO: PossibleDogMatchDTO) -> None:
+        self.repository.add_possible_dog_match(possibleDogMathcDTO)
+        
