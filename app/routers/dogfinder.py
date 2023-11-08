@@ -8,7 +8,7 @@ from app.MyLogger import logger
 from app.services.dog_service import DogWithImagesService
 from app.services.vectordb_indexer import VectorDBIndexer
 from app.viewmodels.api_response import APIResponse
-from app.viewmodels.dog_viewmodel import RETURN_PROPERTIES, DogFullDetailsResponse, DogImageResponse, DogAddRequest, DogMatchedRequest, DogResponse, DogSearchRequest
+from app.viewmodels.dog_viewmodel import RETURN_PROPERTIES, DogFullDetailsResponse, DogImageResponse, DogAddRequest, DogResolvedRequest, DogResponse, DogSearchRequest
 from fastapi import APIRouter, File, Form, Security, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -88,7 +88,7 @@ dog_class_definition = {
                 "description": "Image in base64 format"
             },
             {
-                "name": "isMatched",
+                "name": "isResolved",
                 "dataType": ["boolean"],
                 "description": "was the dog found?"
             },
@@ -447,12 +447,12 @@ async def clean_all(auth_result: str = Security(auth.verify, scopes=['delete:cle
     # return back a json response and set the status code to api_response.status_code
     return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
-@router.post("/doc_matched", response_model=APIResponse)
-async def doc_matched(foundRequest: DogMatchedRequest, auth_result: str = Security(auth.verify, scopes=['write:dog_matched'])):
+@router.post("/doc_resolved", response_model=APIResponse)
+async def doc_resolved(foundRequest: DogResolvedRequest, auth_result: str = Security(auth.verify, scopes=['write:dog_resolved'])):
 
-    result = dogWithImagesService.update_dog_is_matched(foundRequest.dogId, True)
+    result = dogWithImagesService.update_dog_is_resolved(foundRequest.dogId, True)
 
-    api_response = APIResponse(status_code=200, message=f"Dog marked as matched", data={ "results": result })
+    api_response = APIResponse(status_code=200, message=f"Dog marked as resolved", data={ "results": result })
     # return back a json response and set the status code to api_response.status_code
     return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
@@ -501,8 +501,8 @@ def build_filter(dogSearchRequest: DogSearchRequest) -> Optional[Filter]:
     # if queryRequest.isVerified is not None:
     #     predicates.append(Predicate(["isVerified"], "Equal", queryRequest.isVerified, FilterValueTypes.valueBoolean))
 
-    # add isMatched predicate, we only want to return dogs that are not matched
-    predicates.append(Predicate(["isMatched"], "Equal", False, FilterValueTypes.valueBoolean))
+    # add isResolved predicate, we only want to return dogs that are not resolved
+    predicates.append(Predicate(["isResolved"], "Equal", False, FilterValueTypes.valueBoolean))
 
     # if there are predicates return and_ between them
     if (len(predicates) > 0):
