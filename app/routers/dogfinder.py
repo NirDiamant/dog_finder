@@ -280,10 +280,10 @@ async def get_dog_by_id(dogId: int):
         # Query the database
         dog = dogWithImagesRepository.get_dog_with_images_by_id(dogId)
         
-        dogResponseViewModel = mapper.to(DogResponse).map(dog, fields_mapping={"images": []})
-        dogResponseViewModel.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
+        dogFullDetailsResponse = mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={"images": []})
+        dogFullDetailsResponse.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
 
-        api_response = APIResponse(status_code=200, message=f"Queried dog from the database", data={ "results": dogResponseViewModel.model_dump() })
+        api_response = APIResponse(status_code=200, message=f"Queried dog from the database", data={ "results": dogFullDetailsResponse.model_dump() })
     except Exception as e:
         logger.error(f"Error while querying the database: {e}")
         api_response = APIResponse(status_code=500, message=f"Error while querying the database: {e}", data={ "total": 0, "results": [] })
@@ -291,23 +291,24 @@ async def get_dog_by_id(dogId: int):
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
+# Commented out for now because the new flow is reveling the contact details for everyone
 # Endpoint for quering the database without the need for a query image, only DOG_ID_FIELD
-@router.get("/get_dog_by_id_full_details", response_model=APIResponse)
-async def query_by_dog_id(dogId: int, auth_result: dict = Security(auth.verify, scopes=['read:get_dog_by_id_full_details'])):
-    try:
-        # Query the database
-        dog = dogWithImagesRepository.get_dog_with_images_by_id(dogId)
+# @router.get("/get_dog_by_id_full_details", response_model=APIResponse)
+# async def query_by_dog_id(dogId: int, auth_result: dict = Security(auth.verify, scopes=['read:get_dog_by_id_full_details'])):
+#     try:
+#         # Query the database
+#         dog = dogWithImagesRepository.get_dog_with_images_by_id(dogId)
         
-        dogResponseViewModel = mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={"images": []})
-        dogResponseViewModel.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
+#         dogFullDetailsResponse = mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={"images": []})
+#         dogFullDetailsResponse.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
 
-        api_response = APIResponse(status_code=200, message=f"Queried dog from the database", data={ "results": dogResponseViewModel.model_dump() })
-    except Exception as e:
-        logger.error(f"Error while querying the database: {e}")
-        api_response = APIResponse(status_code=500, message=f"Error while querying the database: {e}", data={ "total": 0, "results": [] })
-    finally:
-        # return back a json response and set the status code to api_response.status_code
-        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+#         api_response = APIResponse(status_code=200, message=f"Queried dog from the database", data={ "results": dogFullDetailsResponse.model_dump() })
+#     except Exception as e:
+#         logger.error(f"Error while querying the database: {e}")
+#         api_response = APIResponse(status_code=500, message=f"Error while querying the database: {e}", data={ "total": 0, "results": [] })
+#     finally:
+#         # return back a json response and set the status code to api_response.status_code
+#         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.post("/add_document", response_model=APIResponse)
 async def add_document(dogRequest: DogAddRequest, auth_result: dict = Security(auth.verify)):
