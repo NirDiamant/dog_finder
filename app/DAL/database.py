@@ -3,6 +3,7 @@ import os
 from sqlalchemy import create_engine, orm
 from contextlib import contextmanager, AbstractContextManager
 from sqlalchemy.orm import declarative_base, Session
+from sqlalchemy_utils import database_exists, create_database, drop_database
 from app.MyLogger import logger
 from typing import Callable
 
@@ -26,8 +27,27 @@ class Database:
             ),
         )
 
-    def create_database(self) -> None:
+    def create_tables(self) -> None:
         Base.metadata.create_all(self._engine)
+
+    # Add code to recreate the database here using sqlalchemy_utils
+    def recreate_database(self) -> None:
+        try:
+            # Close existing connections
+            self._engine.dispose()
+
+            # Drop existing db if exists
+            if database_exists(self._engine.url):
+                drop_database(self._engine.url)
+
+            # Create new db if not exists
+            if not database_exists(self._engine.url):
+                create_database(self._engine.url)
+
+            # Create the database tables
+            self.create_tables()
+        except Exception as e:
+            logger.exception(f"Failed to recreate database: {e}")
 
     @contextmanager
     def session(self) -> Callable[..., AbstractContextManager[Session]]:

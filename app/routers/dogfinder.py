@@ -36,6 +36,7 @@ vecotrDBClient: IVectorDBClient
 dogWithImagesRepository: DogWithImagesRepository = None
 dogWithImagesService: DogWithImagesService = None
 embedding_model: Any = None
+db: Database = None
 
 # CHANGE THIS TO FALSE ON PRODUCTION
 IS_VERIFIED_FIELD_DEFAULT_VALUE = False
@@ -160,6 +161,7 @@ async def startup_event():
     global dogWithImagesRepository
     global dogWithImagesService
     global embedding_model
+    global db
 
     # Create the vector db client, connecting to the weaviate instance
     vecotrDBClient = WeaviateVectorDBClient(url=f"{os.getenv('WEAVIATE_HOST', 'http://localhost:8080')}")
@@ -176,7 +178,7 @@ async def startup_event():
 
     db_connection_string = get_connection_string(user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT, db=DB_NAME, protocol=DB_PROTOCOL)
     db = Database(db_url=db_connection_string)
-    db.create_database()
+    db.create_tables()
     
     # Create the embedding model
     logger.info(f"Creating embedding model")
@@ -382,20 +384,34 @@ async def get_schema(class_name: str):
     return vecotrDBClient.get_schema(class_name)
 
 @router.delete("/clean_all", response_model=APIResponse)
-async def clean_all(auth_result: str = Security(auth.verify, scopes=['delete:clean_all'])):
-    logger.info("Deleting all documents from the vectordb")
+async def clean_all(recreate_db: bool = False, auth_result: str = Security(auth.verify, scopes=['delete:clean_all'])):
+    try:
+        logger.info(f"Deleting all documents from the vectordb. recreate_db: {recreate_db}")
 
-    # Delete all objects from the database
-    result = vecotrDBClient.clean_all("Dog", dog_class_definition)
+        # Delete all objects from the database
+        vecotrDBClient.clean_all("Dog", dog_class_definition)
 
-    # If result.success is False return 500 with result.message
-    if result.get("success") is False:
-        api_response = APIResponse(status_code=500, message=f"Error deleting all documents from the vectordb: {result.get('message')}")
-    else:
-        api_response = APIResponse(status_code=200, message=f"All documents were deleted from the vectordb")
+        # Recreate the database
+        if recreate_db:
+            db.recreate_database()
+            message = "All documents were deleted from the vectordb and the database was recreated"
+        else:
+            message = "All documents were deleted from the vectordb"
 
-    # return back a json response and set the status code to api_response.status_code
-    return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+        api_response = APIResponse(status_code=200, message=message)
+    except Exception as e:
+        message = f"Error deleting all documents from the vectordb"
+        if recreate_db:
+            message += ". The database was not recreated successfully"
+        
+        message += f": {e}"
+
+        logger.error(message)
+
+        api_response = APIResponse(status_code=500, message=message)
+    finally:
+        # return back a json response and set the status code to api_response.status_code
+        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.post("/doc_resolved", response_model=APIResponse)
 async def doc_resolved(foundRequest: DogResolvedRequest, auth_result: str = Security(auth.verify, scopes=['write:dog_resolved'])):

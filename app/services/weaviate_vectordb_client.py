@@ -128,11 +128,9 @@ class WeaviateVectorDBClient(IVectorDBClient):
             self.create_schema(class_name, class_obj)
 
             logger.info(f"All documents of '{class_name}' class were deleted from the vectordb")
-
-            return { "success": True, "message": f"All documents of '{class_name}' class were deleted from the vectordb" }
         except Exception as e:
-            logger.error(f"Error deleting all documents of '{class_name}' class from the vectordb: {e}")
-            return { "success": False, "message": f"Error deleting all documents of '{class_name}' class from the vectordb: {e}" }
+            logger.exception(f"Error deleting all documents of '{class_name}' class from the vectordb: {e}")
+            raise
    
     @timeit
     def query(self, class_name: str, query_embedding: List[float], limit: int = None, offset: int = None, filter: Dict[str, Any] = None, properties: List[str] = None):
