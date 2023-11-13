@@ -34,6 +34,7 @@ class Dog(Base):
     color = Column(String)
     size = Column(String)
     sex = Column(DOG_SEX_ENUMS)
+    ageGroup = Column(String) # I don't like the enum restriction on the DB level. It can be a real pain, and I don't see the value
     chipNumber = Column(String(length=15))
     location = Column(String)
     extraDetails = Column(String)

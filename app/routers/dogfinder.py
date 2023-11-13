@@ -1,4 +1,5 @@
 import hashlib
+from http import HTTPStatus
 import uuid
 from app.DTO.dog_dto import DogDTO, DogImageDTO, DogType, PossibleDogMatchDTO
 from app.helpers.image_helper import create_pil_images, get_base64
@@ -11,6 +12,7 @@ from app.viewmodels.api_response import APIResponse
 from app.viewmodels.dog_viewmodel import RETURN_PROPERTIES, DogFullDetailsResponse, DogImageResponse, DogAddRequest, DogResolvedRequest, DogResponse, DogSearchRequest, PossibleDogMatchRequest
 from fastapi import APIRouter, File, Form, Security, UploadFile
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from app.helpers.model_helper import create_embedding_model, embed_query
 from app.helpers.helper import detect_image_mimetype, generate_dog_id, hash_image, resize_image_and_convert_to_format, timeit
@@ -412,6 +414,25 @@ async def clean_all(recreate_db: bool = False, auth_result: str = Security(auth.
     finally:
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
+
+@router.get("/dogs")
+def get_dogs(type: Optional[DogType] = None):
+    results = dogWithImagesService.get_all_dogs_with_images(type=type)
+    parsed_results = [
+        mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={
+            "images": []
+            })
+        for dog in results
+    ]
+    
+    for dog, dogResponse in zip(results, parsed_results):
+        dogResponse.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
+    
+    api_response = APIResponse(status_code=HTTPStatus.OK.value, data={ "results": parsed_results })
+    
+    
+    return JSONResponse(content=jsonable_encoder(api_response), status_code=api_response.status_code)    
 
 @router.post("/doc_resolved", response_model=APIResponse)
 async def doc_resolved(foundRequest: DogResolvedRequest, auth_result: str = Security(auth.verify, scopes=['write:dog_resolved'])):

@@ -3,6 +3,9 @@ from enum import Enum
 from typing import List, Optional
 from pydantic import BaseModel, field_serializer, validator
 
+from app.viewmodels.data_types import DogAgeGroup, DogSex, DogType
+
+
 RETURN_PROPERTIES = [
     "type",
     "breed",
@@ -24,13 +27,6 @@ RETURN_PROPERTIES = [
     "dogFoundOn"
 ]
 
-class DogType(str, Enum):
-    FOUND: str = "found"
-    LOST: str = "lost"
-
-class DogSex(str, Enum):
-    MALE: str = "male"
-    FEMALE: str = "female"
 
 # class QueryRequest(BaseModel):
 #     type: DogType
@@ -55,6 +51,7 @@ class DogSearchRequest(BaseModel):
     color: Optional[str] = None
     size: Optional[str] = None
     sex: Optional[DogSex] = None
+    ageGroup: Optional[DogAgeGroup] = None
     chipNumber: Optional[str] = None
     location: Optional[str] = None
 
@@ -78,6 +75,7 @@ class DogAddRequest(BaseModel):
     color: Optional[str] = None
     size: Optional[str] = None
     sex: Optional[DogSex] = None
+    ageGroup: Optional[DogAgeGroup] = None
     chipNumber: Optional[str] = None
     location: Optional[str] = None
     extraDetails: Optional[str] = None
@@ -151,6 +149,7 @@ class DogFullDetailsResponse(BaseModel):
     color: Optional[str] = None
     size: Optional[str] = None
     sex: Optional[DogSex] = None
+    ageGroup: Optional[DogAgeGroup] = None
     extraDetails: Optional[str] = None
     chipNumber: Optional[str] = None
     location: Optional[str] = None

@@ -1,10 +1,10 @@
 from contextlib import AbstractContextManager
-from typing import Callable
+from typing import Callable, Optional
 from sqlalchemy.orm import Session
 from app.DAL.models import Dog, DogImage, PossibleDogMatch
 from sqlalchemy.exc import SQLAlchemyError
 from automapper import mapper
-from app.DTO.dog_dto import DogDTO, DogImageDTO, PossibleDogMatchDTO
+from app.DTO.dog_dto import DogDTO, DogImageDTO, DogType, PossibleDogMatchDTO
 from sqlalchemy.orm import subqueryload
 from app.MyLogger import logger
 
@@ -61,13 +61,16 @@ class DogWithImagesRepository:
         finally:
             session.close()
 
-    def get_all_dogs_with_images(self) -> list[DogDTO]:
+    def get_all_dogs_with_images(self, type: Optional[DogType] = None) -> list[DogDTO]:
         try:
             dogsDTO = []
 
             with self.session_factory() as session:
-                dogs = session.query(Dog).options(subqueryload(Dog.images)).all()
-                session.refresh(dogs)
+                dogs_query = session.query(Dog).options(subqueryload(Dog.images))
+                if type:
+                    dogs_query = dogs_query.filter(Dog.type == type)
+                
+                dogs = dogs_query.all()
 
                 dogsDTO = [mapper.to(DogDTO).map(dog, fields_mapping={ "images": [] }) for dog in dogs]
                 for i, dog in enumerate(dogs):

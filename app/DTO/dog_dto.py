@@ -3,13 +3,7 @@ from typing import List, Optional
 from pydantic import BaseModel, field_serializer
 from datetime import date
 
-class DogType(str, Enum):
-    FOUND: str = "found"
-    LOST: str = "lost"
-
-class DogSex(str, Enum):
-    MALE: str = "male"
-    FEMALE: str = "female"
+from app.viewmodels.data_types import DogAgeGroup, DogSex, DogType
 
 class DogImageDTO(BaseModel):
     id: Optional[int] = None
@@ -36,6 +30,7 @@ class DogDTO(BaseModel):
     color: Optional[str] = None
     size: Optional[str] = None
     sex: Optional[DogSex] = None
+    ageGroup: Optional[DogAgeGroup] = None
     chipNumber: Optional[str] = None
     location: Optional[str] = None
     extraDetails: Optional[str] = None

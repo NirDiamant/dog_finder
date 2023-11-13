@@ -28,7 +28,7 @@ def setup_exacption_handler(app: FastAPI):
     
     @app.exception_handler(Exception)
     def handle_exception(_, e: Exception):
-        logger.exception("An error eccured: %s", e, exc_info=e)
+        logger.exception("Some Error occurred: %s", e, exc_info=e)
         api_response = APIResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, message="Internal Error")
         return JSONResponse(api_response.to_dict(), status_code=api_response.status_code)
     
