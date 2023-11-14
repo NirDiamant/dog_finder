@@ -1,5 +1,5 @@
 from contextlib import AbstractContextManager
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 from sqlalchemy.orm import Session
 from app.DAL.models import Dog, DogImage, PossibleDogMatch
 from sqlalchemy.exc import SQLAlchemyError
@@ -61,7 +61,7 @@ class DogWithImagesRepository:
         finally:
             session.close()
 
-    def get_all_dogs_with_images(self, type: Optional[DogType] = None) -> list[DogDTO]:
+    def get_all_dogs_with_images(self, type: Optional[DogType] = None, page: int = 1, per_page: int = 10) -> Tuple[list[DogDTO], int]:
         try:
             dogsDTO = []
 
@@ -70,13 +70,18 @@ class DogWithImagesRepository:
                 if type:
                     dogs_query = dogs_query.filter(Dog.type == type)
                 
+                # Get the total number of dogs
+                total_dogs = dogs_query.count()
+
+                dogs_query = dogs_query.order_by("id").offset((page - 1) * per_page).limit(per_page)
+
                 dogs = dogs_query.all()
 
                 dogsDTO = [mapper.to(DogDTO).map(dog, fields_mapping={ "images": [] }) for dog in dogs]
                 for i, dog in enumerate(dogs):
                     dogsDTO[i].images = [mapper.to(DogImageDTO).map(image) for image in dog.images]
 
-                return dogs
+                return dogsDTO, total_dogs
         except SQLAlchemyError as e:
             raise e
         finally:

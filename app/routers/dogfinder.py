@@ -10,7 +10,7 @@ from app.services.dog_service import DogWithImagesService
 from app.services.vectordb_indexer import VectorDBIndexer
 from app.viewmodels.api_response import APIResponse
 from app.viewmodels.dog_viewmodel import RETURN_PROPERTIES, DogFullDetailsResponse, DogImageResponse, DogAddRequest, DogResolvedRequest, DogResponse, DogSearchRequest, PossibleDogMatchRequest
-from fastapi import APIRouter, File, Form, Security, UploadFile
+from fastapi import APIRouter, File, Form, Query, Security, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
@@ -336,7 +336,7 @@ async def add_possible_dog_match(possibleDogMatchRequest: PossibleDogMatchReques
 #         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.post("/add_document", response_model=APIResponse)
-async def add_document(dogRequest: DogAddRequest, auth_result: dict = Security(auth.verify)):
+async def add_document(dogRequest: DogAddRequest):
     # logger.info(f"Document Request: {documentRequest}")
 
     try:
@@ -347,7 +347,7 @@ async def add_document(dogRequest: DogAddRequest, auth_result: dict = Security(a
         # Create DogDocument
         # Map the DogRequest to DogDTO
         dogDTO = mapper.to(DogDTO).map(dogRequest, fields_mapping={
-            "images": [], "reporterId": auth_result["sub"]
+            "images": [], "reporterId": "2"
         })
         dogDTO.images = [DogImageDTO(base64Image=base64Image[0], imageContentType=base64Image[1]) for base64Image in base64Images]
 
@@ -417,8 +417,9 @@ async def clean_all(recreate_db: bool = False, auth_result: str = Security(auth.
 
 
 @router.get("/dogs")
-def get_dogs(type: Optional[DogType] = None, auth_result: str = Security(auth.verify, scopes=['read:dogs'])):
-    results = dogWithImagesService.get_all_dogs_with_images(type=type)
+def get_dogs(type: Optional[DogType] = None, page: int = Query(1, ge=1), per_page: int = Query(10, ge=1, le=100)):
+    results, total_count = dogWithImagesService.get_all_dogs_with_images(type=type, page=page, per_page=per_page)
+
     parsed_results = [
         mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={
             "images": []
@@ -429,7 +430,7 @@ def get_dogs(type: Optional[DogType] = None, auth_result: str = Security(auth.ve
     for dog, dogResponse in zip(results, parsed_results):
         dogResponse.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
     
-    api_response = APIResponse(status_code=HTTPStatus.OK.value, data={ "results": parsed_results })
+    api_response = APIResponse(status_code=HTTPStatus.OK.value, data={ "results": parsed_results, "total": total_count })
     
     
     return JSONResponse(content=jsonable_encoder(api_response), status_code=api_response.status_code)    
