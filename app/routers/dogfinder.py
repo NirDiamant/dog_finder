@@ -417,7 +417,7 @@ async def clean_all(recreate_db: bool = False, auth_result: str = Security(auth.
 
 
 @router.get("/dogs")
-def get_dogs(type: Optional[DogType] = None):
+def get_dogs(type: Optional[DogType] = None, auth_result: str = Security(auth.verify, scopes=['read:dogs'])):
     results = dogWithImagesService.get_all_dogs_with_images(type=type)
     parsed_results = [
         mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={
