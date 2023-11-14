@@ -23,8 +23,8 @@ class DogWithImagesService:
     def get_dog_with_images_by_id(self, dog_id: int) -> DogDTO:
         return self.repository.get_dog_with_images_by_id(dog_id)
 
-    def get_all_dogs_with_images(self, type: Optional[DogType] = None, page: int = 1, per_page: int = 10) -> Tuple[list[DogDTO], int]:
-        return self.repository.get_all_dogs_with_images(type=type, page=page, per_page=per_page)
+    def get_all_dogs_with_images(self, type: Optional[DogType] = None, page: int = 1, page_size: int = 10) -> Tuple[list[DogDTO], int]:
+        return self.repository.get_all_dogs_with_images(type=type, page=page, page_size=page_size)
     
     # Update the dog isResolved field to True or False
     def update_dog_is_resolved(self, dog_id: int, is_resolved: bool) -> DogDTO:

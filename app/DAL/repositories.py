@@ -61,7 +61,7 @@ class DogWithImagesRepository:
         finally:
             session.close()
 
-    def get_all_dogs_with_images(self, type: Optional[DogType] = None, page: int = 1, per_page: int = 10) -> Tuple[list[DogDTO], int]:
+    def get_all_dogs_with_images(self, type: Optional[DogType] = None, page: int = 1, page_size: int = 10) -> Tuple[list[DogDTO], int]:
         try:
             dogsDTO = []
 
@@ -73,7 +73,7 @@ class DogWithImagesRepository:
                 # Get the total number of dogs
                 total_dogs = dogs_query.count()
 
-                dogs_query = dogs_query.order_by("id").offset((page - 1) * per_page).limit(per_page)
+                dogs_query = dogs_query.order_by("id").offset((page - 1) * page_size).limit(page_size)
 
                 dogs = dogs_query.all()
 
