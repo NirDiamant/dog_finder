@@ -10,6 +10,7 @@ from .database import Base
 # DB field enums
 DOG_TYPE_ENUMS = Enum('lost', 'found', name='dog_type')
 DOG_SEX_ENUMS = Enum('male', 'female', name='dog_sex')
+DOG_AGE_GROUP_ENUMS = Enum('puppy', 'adult', 'senior', name='dog_age_group')
 
 class Dog(Base):
     __tablename__ = 'dogs'
@@ -34,7 +35,7 @@ class Dog(Base):
     color = Column(String)
     size = Column(String)
     sex = Column(DOG_SEX_ENUMS)
-    ageGroup = Column(String) # I don't like the enum restriction on the DB level. It can be a real pain, and I don't see the value
+    ageGroup = Column(DOG_AGE_GROUP_ENUMS)
     chipNumber = Column(String(length=15))
     location = Column(String)
     extraDetails = Column(String)

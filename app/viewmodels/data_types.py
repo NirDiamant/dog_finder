@@ -9,6 +9,6 @@ class DogType(str, Enum):
     LOST: str = "lost"
     
 class DogAgeGroup(str, Enum):
-    PUPPY = "puppy"
-    ADULT = "adult"
-    SENIOR = "senior"
+    PUPPY: str = "puppy"
+    ADULT: str = "adult"
+    SENIOR: str = "senior"
