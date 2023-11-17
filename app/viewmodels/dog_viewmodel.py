@@ -85,7 +85,7 @@ class DogAddRequest(BaseModel):
     class Config:
         use_enum_values = True
         
-    @validator("sex", pre=True)
+    @validator("sex", "ageGroup", pre=True)
     def empty_strings_to_none(cls, value):
         if isinstance(value, str) and not value:
             return None
