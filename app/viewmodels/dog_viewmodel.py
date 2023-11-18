@@ -103,19 +103,26 @@ class DogImageResponse(BaseModel):
 
 class DogResponse(BaseModel):
     id: int
-    reporterId: str
     images: List[DogImageResponse]
     type: DogType
     isResolved: bool = False
     isVerified: bool = False
-    # I'm putting all of these as optional for now
+
+    ## Contact details
+    contactName: Optional[str] = None
+    contactPhone: Optional[str] = None
+    contactEmail: Optional[str] = None
+    contactAddress: Optional[str] = None
+
+    ## dog attributes
     name: Optional[str] = None
     breed: Optional[str] = None
     color: Optional[str] = None
     size: Optional[str] = None
     sex: Optional[DogSex] = None
+    ageGroup: Optional[DogAgeGroup] = None
     extraDetails: Optional[str] = None
-    chipNumber: Optional[str] = None
+    # chipNumber: Optional[str] = None
     location: Optional[str] = None
     
     dogFoundOn: Optional[date] = None
@@ -125,8 +132,6 @@ class DogResponse(BaseModel):
     def dogFoundOn_serializer(self, v: date, _info):
         return v.isoformat() if v else None
     
-
-
     class Config:
         use_enum_values = True
 
@@ -161,8 +166,5 @@ class DogFullDetailsResponse(BaseModel):
     def dogFoundOn_serializer(self, v: date, _info):
         return v.isoformat() if v else None
     
-
-
     class Config:
         use_enum_values = True
-
