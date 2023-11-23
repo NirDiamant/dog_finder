@@ -5,4 +5,5 @@ __pycache__
 .vscode/launch.json
 .idea/
 .history/
+dogfinder.db
 *.DS_Store

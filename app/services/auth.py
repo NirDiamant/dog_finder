@@ -1,45 +1,30 @@
-from configparser import ConfigParser
 import os
+import logging
 from typing import Optional
+from app.exceptions.auth_exceptions import UnauthenticatedException, UnauthorizedException
 
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import SecurityScopes, HTTPAuthorizationCredentials, HTTPBearer
 
+logger = logging.getLogger(__name__)
+
+
 def get_auth0_config():
     """Sets up configuration for the app"""
 
-    env = os.getenv("ENV", ".config")
-
-    # Read config from .config file or environment variables
-    if env == ".config":
-        config = ConfigParser()
-        config.read(".config")
-        config = config["AUTH0"]
-    else:
-        config = {
-            "DOMAIN": os.getenv("AUTH0_DOMAIN"),
-            "API_AUDIENCE": os.getenv("AUTH0_API_AUDIENCE"),
-            "ISSUER": os.getenv("AUTH0_ISSUER"),
-            "ALGORITHMS": os.getenv("AUTH0_ALGORITHMS"),
-        }
+    config = {
+        "DOMAIN": os.getenv("AUTH0_DOMAIN"),
+        "API_AUDIENCE": os.getenv("AUTH0_API_AUDIENCE"),
+        "ISSUER": os.getenv("AUTH0_ISSUER"),
+        "ALGORITHMS": os.getenv("AUTH0_ALGORITHMS"),
+    }
+        
     for key, value in config.items():
         if value == "":
             print(f"Missing config: {key}")
             exit(1)
     return config
-
-class UnauthorizedException(HTTPException):
-    def __init__(self, detail: str, **kwargs):
-        """Returns HTTP 403"""
-        super().__init__(status.HTTP_403_FORBIDDEN, detail=detail)
-
-
-class UnauthenticatedException(HTTPException):
-    def __init__(self):
-        super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Requires authentication"
-        )
 
 
 class VerifyToken:
@@ -56,9 +41,10 @@ class VerifyToken:
                      security_scopes: SecurityScopes,
                      token: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer())
                      ):
+        
         # If no token is provided, raise an exception indicating lack of authentication
         if token is None:
-            raise UnauthenticatedException
+            raise UnauthenticatedException("No token provided")
 
         try:
             # Fetch the signing key associated with the provided JWT
@@ -67,9 +53,9 @@ class VerifyToken:
             ).key
         # Handle exceptions related to JWKS client or JWT decoding errors
         except jwt.exceptions.PyJWKClientError as error:
-            raise UnauthorizedException(str(error))
+            raise UnauthorizedException("Problem with JWT") from error
         except jwt.exceptions.DecodeError as error:
-            raise UnauthorizedException(str(error))
+            raise UnauthorizedException("jwt decoding problem") from error
 
         try:
             # Decode and verify the JWT using the fetched signing key
@@ -82,27 +68,14 @@ class VerifyToken:
             )
         # Handle exceptions related to JWT decoding
         except Exception as error:
-            raise UnauthorizedException(str(error))
+            raise UnauthorizedException("could not decode JWT") from error
 
         # Check if there are any specific security scopes to verify
         if len(security_scopes.scopes) > 0:
-            self._check_claims(payload, 'scope', security_scopes.scopes)
+            permissions = payload["permissions"]
+            for required_permission in security_scopes.scopes:
+                if required_permission not in permissions:
+                    raise UnauthorizedException(detail=f'Missing "{required_permission}" permission')
+
 
         return payload
-
-    def _check_claims(self, payload, claim_name, expected_value):
-        # Check if the specified claim is present in the JWT payload
-        if claim_name not in payload:
-            raise UnauthorizedException(detail=f'No claim "{claim_name}" found in token')
-
-        # Extract the value of the claim from the JWT payload
-        payload_claim = payload[claim_name]
-
-        # If the claim we are checking is 'scope', split the string to get individual scopes
-        if claim_name == 'scope':
-            payload_claim = payload[claim_name].split(' ')
-
-        # Verify each expected value against the JWT's claims
-        for value in expected_value:
-            if value not in payload_claim:
-                raise UnauthorizedException(detail=f'Missing "{claim_name}" scope')

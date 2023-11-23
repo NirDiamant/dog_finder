@@ -37,7 +37,7 @@ class WeaviateVectorDBClient(IVectorDBClient):
                             logger.error(result["result"])
                             errors.append({"error": result["result"]["errors"]["error"], "properties": result["properties"]})
                     else:
-                        logger.info(f"found result {result}")
+                        # logger.info(f"found result {result}")
                         success.append({ "properties": result["properties"] })
         #endregion
 
@@ -77,6 +77,40 @@ class WeaviateVectorDBClient(IVectorDBClient):
         return { "successful": len(success), "failed": len(errors), "failed_objects": errors }
 
     @timeit
+    def delete_by_ids(self, class_name: str, field_name: str, ids: list[int]) -> None:
+        """
+        Deletes all documents of specific class name from the vectordb.
+        """
+
+        try:
+            logger.info(f"Deleting {len(ids)} documents of '{class_name}' class from the vectordb") 
+
+            with self.client.batch(
+                num_workers=2,   # Parallelize the process
+            ) as batch:
+                # From documentRequest.documents, create a list of unique ids
+                ids = list(set(ids))
+                logger.info(f"Deleting {len(ids)} documents from the database: {ids}")
+
+                # Create Predicate for dogs ids
+                filter = or_(*[Predicate([field_name], "Equal", id, FilterValueTypes.valueNumber) for id in ids])
+                logger.info(f"Delete filter: {filter.to_dict()}") 
+
+                # Delete all the documents with the ids
+                result = batch.delete_objects(
+                    class_name=class_name,
+                    where=filter.to_dict(),
+                )
+
+            # log info by using the result object
+            logger.info(f"Results of deleted_by_ids {result['results']}") 
+
+            return { "success": True, "results": result["results"] }
+        except Exception as e:
+            logger.error(f"Error deleting documents of '{class_name}' class and ids {ids} from the vectordb: {e}")
+            return { "success": False, "message": f"Error deleting documents of '{class_name}' class and ids {ids} from the vectordb" }
+        
+    @timeit
     def clean_all(self, class_name: str, class_obj: dict) -> None:
         """
         Deletes all documents of specific class name from the vectordb.
@@ -94,18 +128,16 @@ class WeaviateVectorDBClient(IVectorDBClient):
             self.create_schema(class_name, class_obj)
 
             logger.info(f"All documents of '{class_name}' class were deleted from the vectordb")
-
-            return { "success": True, "message": f"All documents of '{class_name}' class were deleted from the vectordb" }
         except Exception as e:
-            logger.error(f"Error deleting all documents of '{class_name}' class from the vectordb: {e}")
-            return { "success": False, "message": f"Error deleting all documents of '{class_name}' class from the vectordb: {e}" }
+            logger.exception(f"Error deleting all documents of '{class_name}' class from the vectordb: {e}")
+            raise
    
     @timeit
-    def query(self, class_name: str, query: str, query_embedding: List[float], limit: int = None, offset: int = None, filter: Dict[str, Any] = None, properties: List[str] = None):
+    def query(self, class_name: str, query_embedding: List[float], limit: int = None, offset: int = None, filter: Dict[str, Any] = None, properties: List[str] = None):
         """
         Queries the model with a given query and returns best matches.
         """
-        logger.info(f"Querying the vector db with query: {query} and query_embedding length: {len(query_embedding) if query_embedding is not None else None}, filter: {filter}, limit: {limit}, offset: {offset}, properties: {properties}")
+        logger.info(f"Querying the vector db with query_embedding length: {len(query_embedding) if query_embedding is not None else None}, filter: {filter}, limit: {limit}, offset: {offset}, properties: {properties}")
         
         # Query the database
         logger.info(f"Querying the database")

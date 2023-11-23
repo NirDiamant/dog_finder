@@ -32,6 +32,10 @@ services:
     - --port
     - '8000'
     image: dogfinder:latest
+    build: 
+      context: .
+      platforms:
+        - "linux/amd64"
     ports:
     - 8000:8000
     restart: on-failure:0

@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-PyJWT
+pyjwt[crypto]
 cachetools
 python-multipart
 pydantic-settings
@@ -9,4 +9,6 @@ Pillow
 sentence_transformers
 sqlalchemy
 sqlalchemy_utils
-psycopg2
+psycopg2-binary
+# dependency_injector
+py-automapper
