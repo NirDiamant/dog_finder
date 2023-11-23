@@ -71,6 +71,11 @@ dog_class_definition = {
                 "description": "The dog's sex"
             },
             {
+                "name": "ageGroup",
+                "dataType": ["text"],
+                "description": "The dog's age group"
+            },
+            {
                 "name": "extraDetails",
                 "dataType": ["text"],
                 "description": "Any extra detail that can be returned to the user to identify the dog"
@@ -380,6 +385,22 @@ async def verify_document(dogId: int, auth_result: str = Security(auth.verify, s
 async def get_schema(class_name: str):
     return vecotrDBClient.get_schema(class_name)
 
+# reindex all dogs with images
+@router.post("/reindex_all_dogs_with_images", response_model=APIResponse)
+async def reindex_all_dogs_with_images(auth_result: str = Security(auth.verify, scopes=['write:reindex_all_dogs_with_images'])):
+    try:
+        # Reindex all dogs with images
+        result = dogWithImagesService.index_all_dogs_with_images()
+
+        api_response = APIResponse(status_code=200, message=f"Reindexed all dogs with images in the vecotrdb", meta=result)
+    except Exception as e:
+        logger.error(f"Error while reindexing all dogs with images in the vecotrdb: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while reindexing all dogs with images in the vecotrdb: {e}")
+    finally:
+        # return back a json response and set the status code to api_response.status_code
+        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
+
 @router.delete("/clean_all", response_model=APIResponse)
 async def clean_all(recreate_db: bool = False, auth_result: str = Security(auth.verify, scopes=['delete:clean_all'])):
     try:
@@ -410,6 +431,23 @@ async def clean_all(recreate_db: bool = False, auth_result: str = Security(auth.
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
+# Add an endpoint to delete dog with images by id
+@router.delete("/delete_dog_by_id", response_model=APIResponse)
+async def delete_dog_by_id(dogId: int, auth_result: str = Security(auth.verify, scopes=['delete:delete_dog_by_id'])):
+    logger.info(f"Deleting dog with id: {dogId}")
+
+    try:
+        # Delete the dog from the database
+        dogWithImagesService.delete_dog_with_images_by_id(dogId)
+
+        api_response = APIResponse(status_code=200, message=f"Deleted dog with id {dogId} from the database")
+    except Exception as e:
+        logger.error(f"Error while deleting dog with id {dogId} from the database: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while deleting dog with id {dogId} from the database: {e}")
+    finally:
+        # return back a json response and set the status code to api_response.status_code
+        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
 
 @router.get("/dogs")
 def get_dogs(type: Optional[DogType] = None, page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), auth_result: str = Security(auth.verify, scopes=['read:dogs'])):
@@ -427,17 +465,18 @@ def get_dogs(type: Optional[DogType] = None, page: int = Query(1, ge=1), page_si
     
     api_response = APIResponse(status_code=HTTPStatus.OK.value, data={ "results": parsed_results, "pagination": { "total": total_count, "page": page, "page_size": page_size, "returned": len(parsed_results) } })
     
-    
     return JSONResponse(content=jsonable_encoder(api_response), status_code=api_response.status_code)    
 
 @router.post("/doc_resolved", response_model=APIResponse)
 async def doc_resolved(foundRequest: DogResolvedRequest, auth_result: str = Security(auth.verify, scopes=['write:dog_resolved'])):
-
-    result = dogWithImagesService.update_dog_is_resolved(foundRequest.dogId, True)
-
-    api_response = APIResponse(status_code=200, message=f"Dog marked as resolved", data={ "results": result })
-    # return back a json response and set the status code to api_response.status_code
-    return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+    try:
+        dogWithImagesService.update_dog_is_resolved(foundRequest.dogId, True)
+        api_response = APIResponse(status_code=200, message=f"Dog id {foundRequest.dogId} marked as resolved")
+    except Exception as e:
+        logger.error(f"Error while marking dog with id {foundRequest.dogId} as resolved: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while marking dog with id {foundRequest.dogId} as resolved: {e}")
+    finally:
+        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 # build a predicate for the properties, breed, type, if they are not None with and_ between them
 @timeit
@@ -458,6 +497,10 @@ def build_filter(dogSearchRequest: DogSearchRequest) -> Optional[Filter]:
     # add sex predicate
     if dogSearchRequest.sex is not None:
         predicates.append(Predicate(["sex"], "Equal", dogSearchRequest.sex.value, FilterValueTypes.valueText))
+
+    # add ageGroup predicate
+    if dogSearchRequest.ageGroup is not None:
+        predicates.append(Predicate(["ageGroup"], "Equal", dogSearchRequest.ageGroup.value, FilterValueTypes.valueText))
 
     # add size predicate
     if dogSearchRequest.size is not None:
