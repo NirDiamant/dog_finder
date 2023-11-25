@@ -337,16 +337,16 @@ async def add_possible_dog_match(possibleDogMatchRequest: PossibleDogMatchReques
 
 # add endpoint for getting dogs reported by a specific user, get the reporterId from the auto0 token
 @router.get("/get_dogs_by_reporter_id", response_model=APIResponse)
-async def get_dogs_by_reporter_id(auth_result: dict = Security(auth.verify, scopes=['read:get_dogs_by_reporter_id'])):
+async def get_dogs_by_reporter_id(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), auth_result: dict = Security(auth.verify)):
     try:
         # Query the database
-        dogs, total_count = dogWithImagesService.get_all_dogs_with_images_by_reporter_id(auth_result["sub"])
+        dogs, total_count = dogWithImagesService.get_all_dogs_with_images_by_reporter_id(auth_result["sub"], page=page, page_size=page_size)
+        
+        dogFullDetailsResponses = [mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={"images": []}) for dog in dogs]
+        for dog, dogResponse in zip(dogs, dogFullDetailsResponses):
+            dogResponse.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
 
-        dogFullDetailsResponse = [mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={"images": []}) for dog in dogs]
-        for dog, dogFullDetailsResponse in zip(dogs, dogFullDetailsResponse):
-            dogFullDetailsResponse.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
-
-        api_response = APIResponse(status_code=200, message=f"Queried {len(dogs)} dogs from the database", data={ "results": dogFullDetailsResponse, "pagination": { "total": total_count, "page": 1, "page_size": len(dogFullDetailsResponse), "returned": len(dogFullDetailsResponse) } })
+        api_response = APIResponse(status_code=200, message=f"Queried dogs from the database", data={ "results": dogFullDetailsResponses, "pagination": { "total": total_count, "page": page, "page_size": page_size, "returned": len(dogFullDetailsResponses) } })
     except Exception as e:
         logger.error(f"Error while querying the database: {e}")
         api_response = APIResponse(status_code=500, message=f"Error while querying the database: {e}", data={ "total": 0, "results": [] })
