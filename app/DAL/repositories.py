@@ -104,6 +104,36 @@ class DogWithImagesRepository:
         except SQLAlchemyError as e:
             raise e
 
+    def get_all_dogs_with_images_by_reporter_id(self, reporter_id: str, page: int = 1, page_size: int = 10) -> Tuple[list[DogDTO], int]:
+        """
+        Retrieve all dogs reported by a user from the database.
+
+        Args:
+            reporter_id (str): The ID of the user.
+            page (int, optional): The page number. Defaults to 1.
+            page_size (int, optional): The number of dogs per page. Defaults to 10.
+
+        Returns:
+            Tuple[list[DogDTO], int]: A tuple containing the list of dog data transfer objects and the total number of dogs.
+        """
+        try:
+            with self.session_factory() as session:
+                dogs_query = session.query(Dog).options(subqueryload(Dog.images)).filter(Dog.reporterId == reporter_id)
+                
+                total_dogs = dogs_query.count()
+
+                dogs_query = dogs_query.order_by("id").offset((page - 1) * page_size).limit(page_size)
+
+                dogs = dogs_query.all()
+
+                dogsDTO = [mapper.to(DogDTO).map(dog, fields_mapping={ "images": [] }) for dog in dogs]
+                for i, dog in enumerate(dogs):
+                    dogsDTO[i].images = [mapper.to(DogImageDTO).map(image) for image in dog.images]
+
+                return dogsDTO, total_dogs
+        except SQLAlchemyError as e:
+            raise e
+
     def update_dog_is_resolved(self, dog_id: int, is_resolved: bool) -> None:
         """
         Update the isResolved property of a dog in the database.

@@ -325,7 +325,7 @@ async def add_possible_dog_match(possibleDogMatchRequest: PossibleDogMatchReques
         possibleDogMatchDTO = mapper.to(PossibleDogMatchDTO).map(possibleDogMatchRequest)
 
         # Add the possible dog match to the database
-        result = dogWithImagesService.add_possible_dog_match(possibleDogMatchDTO)
+        dogWithImagesService.add_possible_dog_match(possibleDogMatchDTO)
 
         api_response = APIResponse(status_code=200, message=f"Added possible dog match to the database")
     except Exception as e:
@@ -334,6 +334,25 @@ async def add_possible_dog_match(possibleDogMatchRequest: PossibleDogMatchReques
     finally:
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+
+# add endpoint for getting dogs reported by a specific user, get the reporterId from the auto0 token
+@router.get("/get_dogs_by_reporter_id", response_model=APIResponse)
+async def get_dogs_by_reporter_id(auth_result: dict = Security(auth.verify, scopes=['read:get_dogs_by_reporter_id'])):
+    try:
+        # Query the database
+        dogs, total_count = dogWithImagesService.get_all_dogs_with_images_by_reporter_id(auth_result["sub"])
+
+        dogFullDetailsResponse = [mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={"images": []}) for dog in dogs]
+        for dog, dogFullDetailsResponse in zip(dogs, dogFullDetailsResponse):
+            dogFullDetailsResponse.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
+
+        api_response = APIResponse(status_code=200, message=f"Queried {len(dogs)} dogs from the database", data={ "results": dogFullDetailsResponse, "pagination": { "total": total_count, "page": 1, "page_size": len(dogFullDetailsResponse), "returned": len(dogFullDetailsResponse) } })
+    except Exception as e:
+        logger.error(f"Error while querying the database: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while querying the database: {e}", data={ "total": 0, "results": [] })
+    finally:
+        # return back a json response and set the status code to api_response.status_code
+        return JSONResponse(content=jsonable_encoder(api_response), status_code=api_response.status_code)
 
 @router.post("/add_document", response_model=APIResponse)
 async def add_document(dogRequest: DogAddRequest, auth_result: dict = Security(auth.verify)):

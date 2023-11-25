@@ -36,7 +36,7 @@ class DogWithImagesService:
                 dogDTOs, _ = self.repository.get_all_dogs_with_images(type=None, page=i, page_size=100)
 
                 result = self.vectordbIndexer.index_dogs_with_images(dogDTOs)
-                
+
                 # Aggregate the result and return the final result
                 if final_result is None:
                     final_result = result
@@ -62,6 +62,13 @@ class DogWithImagesService:
             return self.repository.get_all_dogs_with_images(type=type, page=page, page_size=page_size)
         except Exception as e:
             logger.exception(f"Error while getting all dogs with images: {e}")
+            raise e
+
+    def get_all_dogs_with_images_by_reporter_id(self, reporter_id: str, page: int = 1, page_size: int = 10) -> Tuple[list[DogDTO], int]:
+        try:
+            return self.repository.get_all_dogs_with_images_by_reporter_id(reporter_id, page=page, page_size=page_size)
+        except Exception as e:
+            logger.exception(f"Error while getting all dogs with images by reporter ID: {e}")
             raise e
 
     # Update the dog isResolved field to True or False
