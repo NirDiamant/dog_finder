@@ -31,8 +31,11 @@ class DogWithImagesService:
             final_result = None
             _, total_count = self.repository.get_all_dogs_with_images(type=None, page=1, page_size=1)
 
-            # loop over the total count and index the dogs with images in the vector database
-            for i in range(1, total_count, 100):
+            # Calculate total pages
+            total_pages = (total_count + 99) // 100
+
+            # Loop over the total pages and index the dogs with images in the vector database
+            for i in range(1, total_pages + 1):
                 dogDTOs, _ = self.repository.get_all_dogs_with_images(type=None, page=i, page_size=100)
 
                 result = self.vectordbIndexer.index_dogs_with_images(dogDTOs)

@@ -199,6 +199,11 @@ class DogWithImagesRepository:
             with self.session_factory() as session:
                 dog = session.query(Dog).options(subqueryload(Dog.images)).filter(Dog.id == dog_id).first()
                 
+                # Delete the dog images
+                for image in dog.images:
+                    session.delete(image)
+                
+                # Delete the dog
                 session.delete(dog)
                 session.commit()
         except SQLAlchemyError as e:
