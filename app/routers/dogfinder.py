@@ -405,7 +405,7 @@ async def get_schema(class_name: str):
     return vecotrDBClient.get_schema(class_name)
 
 # reindex all dogs with images
-@router.post("/reindex_all_dogs_with_images", response_model=APIResponse)
+@router.get("/reindex_all_dogs_with_images", response_model=APIResponse)
 async def reindex_all_dogs_with_images(auth_result: str = Security(auth.verify, scopes=['write:reindex_all_dogs_with_images'])):
     try:
         # Reindex all dogs with images
