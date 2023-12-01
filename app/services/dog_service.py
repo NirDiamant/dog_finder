@@ -73,6 +73,13 @@ class DogWithImagesService:
         except Exception as e:
             logger.exception(f"Error while getting all dogs with images by reporter ID: {e}")
             raise e
+        
+    def get_possible_dog_matches(self, dog_id: Optional[int] = None, page: int = 1, page_size: int = 10) -> Tuple[list[PossibleDogMatchDTO], int]:
+        try:
+            return self.repository.get_possible_dog_matches(dog_id, page=page, page_size=page_size)
+        except Exception as e:
+            logger.exception(f"Error while getting possible dog matches: {e}")
+            raise e
 
     # Update the dog isResolved field to True or False
     def update_dog_is_resolved(self, dog_id: int, is_resolved: bool) -> None:

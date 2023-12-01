@@ -9,7 +9,7 @@ from app.MyLogger import logger
 from app.services.dog_service import DogWithImagesService
 from app.services.vectordb_indexer import VectorDBIndexer
 from app.viewmodels.api_response import APIResponse
-from app.viewmodels.dog_viewmodel import RETURN_PROPERTIES, DogFullDetailsResponse, DogImageResponse, DogAddRequest, DogResolvedRequest, DogResponse, DogSearchRequest, PossibleDogMatchRequest
+from app.viewmodels.dog_viewmodel import RETURN_PROPERTIES, DogFullDetailsResponse, DogImageResponse, DogAddRequest, DogResolvedRequest, DogResponse, DogSearchRequest, PossibleDogMatchRequest, PossibleDogMatchResponse
 from fastapi import APIRouter, File, Form, Query, Security, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
@@ -346,10 +346,32 @@ async def get_dogs_by_reporter_id(page: int = Query(1, ge=1), page_size: int = Q
         for dog, dogResponse in zip(dogs, dogFullDetailsResponses):
             dogResponse.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
 
-        api_response = APIResponse(status_code=200, message=f"Queried dogs from the database", data={ "results": dogFullDetailsResponses, "pagination": { "total": total_count, "page": page, "page_size": page_size, "returned": len(dogFullDetailsResponses) } })
+        api_response = APIResponse(status_code=200, message=f"Queried dogs by reporter ID from the database", data={ "results": dogFullDetailsResponses, "pagination": { "total": total_count, "page": page, "page_size": page_size, "returned": len(dogFullDetailsResponses) } })
     except Exception as e:
-        logger.error(f"Error while querying the database: {e}")
-        api_response = APIResponse(status_code=500, message=f"Error while querying the database: {e}", data={ "total": 0, "results": [] })
+        logger.error(f"Error while querying dogs by reporter ID from the database: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while querying dogs by reporter ID from the database: {e}", data={ "total": 0, "results": [] })
+    finally:
+        # return back a json response and set the status code to api_response.status_code
+        return JSONResponse(content=jsonable_encoder(api_response), status_code=api_response.status_code)
+
+@router.get("/get_possible_dog_matches", response_model=APIResponse)
+async def get_possible_dog_matches(dogId: Optional[int] = None, page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), auth_result: dict = Security(auth.verify, scopes=['read:get_possible_dog_matches'])):
+    # get from service
+    try:
+        # Query the database
+        possibleDogMatches, total_count = dogWithImagesService.get_possible_dog_matches(dog_id=dogId, page=page, page_size=page_size)
+
+        possibleDogMatchResponses = [mapper.to(PossibleDogMatchResponse).map(possibleDogMatch, fields_mapping={ "dog": None, "possibleMatch": None }) for possibleDogMatch in possibleDogMatches]
+        for possibleDogMatch, possibleDogMatchResponse in zip(possibleDogMatches, possibleDogMatchResponses):
+            possibleDogMatchResponse.dog = mapper.to(DogResponse).map(possibleDogMatch.dog, fields_mapping={ "images": [] })
+            possibleDogMatchResponse.dog.images = [mapper.to(DogImageResponse).map(image) for image in possibleDogMatch.dog.images]
+            possibleDogMatchResponse.possibleMatch = mapper.to(DogResponse).map(possibleDogMatch.possibleMatch, fields_mapping={ "images": [] })
+            possibleDogMatchResponse.possibleMatch.images = [mapper.to(DogImageResponse).map(image) for image in possibleDogMatch.possibleMatch.images]
+
+        api_response = APIResponse(status_code=200, message=f"Queried possible dog matches from the database", data={ "results": possibleDogMatchResponses, "pagination": { "total": total_count, "page": page, "page_size": page_size, "returned": len(possibleDogMatchResponses) } })
+    except Exception as e:
+        logger.error(f"Error while querying possible dog matches from the database: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while querying possible dog matches from the database: {e}", data={ "total": 0, "results": [] })
     finally:
         # return back a json response and set the status code to api_response.status_code
         return JSONResponse(content=jsonable_encoder(api_response), status_code=api_response.status_code)

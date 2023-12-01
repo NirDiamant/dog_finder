@@ -187,6 +187,43 @@ class DogWithImagesRepository:
             logger.exception(f"Error while adding possible dog match: {e}")
             session.rollback()
             raise e
+        
+    def get_possible_dog_matches(self, dog_id: Optional[int] = None, page: int = 1, page_size: int = 10) -> Tuple[list[PossibleDogMatchDTO], int]:
+        """
+        Retrieve possible dog matches from the database.
+
+        Args:
+            dog_id (int, optional): The ID of the dog. If provided, retrieves possible dog matches for a specific dog. Defaults to None.
+            page (int, optional): The page number. Defaults to 1.
+            page_size (int, optional): The number of possible dog matches per page. Defaults to 10.
+
+        Returns:
+            Tuple[list[PossibleDogMatchDTO], int]: A tuple containing the list of possible dog match data transfer objects and the total number of possible dog matches.
+        """
+        try:
+            with self.session_factory() as session:
+                possibleDogMatches_query = session.query(PossibleDogMatch).options(subqueryload(PossibleDogMatch.dog), subqueryload(PossibleDogMatch.possibleMatch))
+                
+                if dog_id is not None:
+                    possibleDogMatches_query = possibleDogMatches_query.filter(PossibleDogMatch.dogId == dog_id)
+
+                total_possibleDogMatches = possibleDogMatches_query.count()
+
+                possibleDogMatches_query = possibleDogMatches_query.order_by("id").offset((page - 1) * page_size).limit(page_size)
+
+                possibleDogMatches = possibleDogMatches_query.all()
+
+                possibleDogMatchesDTO = [mapper.to(PossibleDogMatchDTO).map(possibleDogMatch, fields_mapping={ "dog": None, "possibleMatch": None}) for possibleDogMatch in possibleDogMatches]
+
+                for possibleDogMatchDTO, possibleDogMatch in zip(possibleDogMatchesDTO, possibleDogMatches):
+                    possibleDogMatchDTO.dog = mapper.to(DogDTO).map(possibleDogMatch.dog, fields_mapping={ "images": [] })
+                    possibleDogMatchDTO.dog.images = [mapper.to(DogImageDTO).map(image) for image in possibleDogMatch.dog.images]
+                    possibleDogMatchDTO.possibleMatch = mapper.to(DogDTO).map(possibleDogMatch.possibleMatch, fields_mapping={ "images": [] })
+                    possibleDogMatchDTO.possibleMatch.images = [mapper.to(DogImageDTO).map(image) for image in possibleDogMatch.possibleMatch.images]
+
+                return possibleDogMatchesDTO, total_possibleDogMatches
+        except SQLAlchemyError as e:
+            raise e
 
     def delete_dog_with_images_by_id(self, dog_id: int) -> None:
         """
@@ -198,10 +235,6 @@ class DogWithImagesRepository:
         try:
             with self.session_factory() as session:
                 dog = session.query(Dog).options(subqueryload(Dog.images)).filter(Dog.id == dog_id).first()
-                
-                # Delete the dog images
-                for image in dog.images:
-                    session.delete(image)
                 
                 # Delete the dog
                 session.delete(dog)

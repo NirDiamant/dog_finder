@@ -63,6 +63,7 @@ class DogDTO(BaseModel):
         return vectordb_json
 
 class PossibleDogMatchDTO(BaseModel):
+    id: Optional[int] = None
     dogId: int
     possibleMatchId: int
 
