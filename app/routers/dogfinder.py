@@ -578,8 +578,6 @@ def build_filter(dogSearchRequest: DogSearchRequest) -> Optional[Filter]:
     # if there are no predicates return None
     return None
 
-
-
 def query_vector_db(dogSearchRequest: DogSearchRequest):
     # Open the image from the base64 string to PIL Image
     query_image = create_pil_images([dogSearchRequest.base64Image])[0]
@@ -594,7 +592,20 @@ def query_vector_db(dogSearchRequest: DogSearchRequest):
     logger.info(f"Querying the database")
     results = vecotrDBClient.query(class_name="Dog", query_embedding=query_embedding, limit=dogSearchRequest.top, offset=None, filter=filter.to_dict(), properties=dogSearchRequest.return_properties)
 
-    return results
+
+    # results may contain the same dog id multiple times, so we need to remove the duplicates and keep the one with the highest score
+    # The results are sorted by score in descending order, so we can loop over the results and keep the first result with the dog id
+    # and remove the rest of the results with the same dog id
+    # keep the order of the list the same after removing the duplicates
+    unique_results = {}
+    for result in results:
+        if result["dogId"] not in unique_results:
+            unique_results[result["dogId"]] = result
+    # If you need the results as a list
+    unique_results = list(unique_results.values())
+
+    # return the unique results
+    return unique_results
 
 def handle_uploaded_images(imgs):
     """
