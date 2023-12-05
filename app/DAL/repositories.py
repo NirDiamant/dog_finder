@@ -72,7 +72,7 @@ class DogWithImagesRepository:
         except SQLAlchemyError as e:
             raise e
 
-    def get_all_dogs_with_images(self, type: Optional[DogType] = None, page: int = 1, page_size: int = 10) -> Tuple[list[DogDTO], int]:
+    def get_all_dogs_with_images(self, type: Optional[DogType] = None, is_resolved: Optional[bool] = None, page: int = 1, page_size: int = 10) -> Tuple[list[DogDTO], int]:
         """
         Retrieve all dogs with images from the database.
 
@@ -87,9 +87,13 @@ class DogWithImagesRepository:
         try:
             with self.session_factory() as session:
                 dogs_query = session.query(Dog).options(subqueryload(Dog.images))
+                
                 if type:
                     dogs_query = dogs_query.filter(Dog.type == type)
                 
+                if is_resolved is not None:
+                    dogs_query = dogs_query.filter(Dog.isResolved == is_resolved)
+
                 total_dogs = dogs_query.count()
 
                 dogs_query = dogs_query.order_by("id").offset((page - 1) * page_size).limit(page_size)
@@ -158,6 +162,32 @@ class DogWithImagesRepository:
             session.rollback()
             raise e
 
+    def delete_possible_dog_matches(self, dog_id: int) -> None:
+        """
+        Delete possible dog matches from the database.
+
+        Args:
+            dog_id (int): The ID of the dog.
+        """
+        try:
+            with self.session_factory() as session:
+                possibleDogMatches = session.query(PossibleDogMatch).filter(
+                    (PossibleDogMatch.dogId == dog_id) | (PossibleDogMatch.possibleMatchId == dog_id)
+                ).all()
+                
+                for possibleDogMatch in possibleDogMatches:
+                    session.delete(possibleDogMatch)
+                
+                session.commit()
+        except SQLAlchemyError as e:
+            logger.exception(f"DB Error while deleting possible dog matches: {e}")
+            session.rollback()
+            raise e
+        except Exception as e:
+            logger.exception(f"Error while deleting possible dog matches: {e}")
+            session.rollback()
+            raise e
+
     def add_possible_dog_match(self, possibleDogMatchDTO: PossibleDogMatchDTO) -> None:
         """
         Add a possible dog match to the database.
@@ -187,7 +217,20 @@ class DogWithImagesRepository:
             logger.exception(f"Error while adding possible dog match: {e}")
             session.rollback()
             raise e
-        
+    
+    def get_possible_dog_matches_count(self) -> int:
+        """
+        Retrieve the number of possible dog matches from the database.
+
+        Returns:
+            int: The number of possible dog matches.
+        """
+        try:
+            with self.session_factory() as session:
+                return session.query(PossibleDogMatch).count()
+        except SQLAlchemyError as e:
+            raise e
+
     def get_possible_dog_matches(self, dog_id: Optional[int] = None, page: int = 1, page_size: int = 10) -> Tuple[list[PossibleDogMatchDTO], int]:
         """
         Retrieve possible dog matches from the database.
