@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional
+from typing import Any, List, Optional
 from pydantic import BaseModel, field_serializer
 from datetime import date
 
@@ -12,8 +12,7 @@ class DogImageDTO(BaseModel):
 
 class DogDTO(BaseModel):
     id: Optional[int] = None
-    reporterId: str 
-    images: List[DogImageDTO]
+    reporterId: str
     type: DogType
     isResolved: bool = False
     isVerified: bool = False
@@ -36,6 +35,9 @@ class DogDTO(BaseModel):
     extraDetails: Optional[str] = None
 
     dogFoundOn: Optional[date] = None
+    
+    images: List[DogImageDTO]
+    possibleMatches: List[Any] = []
 
     # add field_serializer to convert dogFoundOn to string
     @field_serializer("dogFoundOn")
