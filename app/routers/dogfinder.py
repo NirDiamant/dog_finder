@@ -2,6 +2,7 @@ import hashlib
 from http import HTTPStatus
 import uuid
 from app.DTO.dog_dto import DogDTO, DogImageDTO, DogType, PossibleDogMatchDTO
+from app.helpers.automapping_helper import setup_mapping
 from app.helpers.image_helper import create_pil_images, get_base64
 from app.services.auth import VerifyToken
 from typing import Any, List, Optional
@@ -30,6 +31,7 @@ from app.services.weaviate_vectordb_client import WeaviateVectorDBClient
 from automapper import mapper
 from app.DAL.database import Database, get_connection_string
 from app.DAL.repositories import DogWithImagesRepository
+from app import viewmodel_mapper
 
 logger.info("Starting up the dogfinder router")
 
@@ -198,8 +200,7 @@ async def startup_event():
     dogWithImagesRepository = DogWithImagesRepository(session_factory=db.session)
     dogWithImagesService = DogWithImagesService(dogWithImagesRepository, vectorDBIndexer)
 
-    
-
+    setup_mapping()
 
 auth = VerifyToken()
 
@@ -289,8 +290,8 @@ async def get_dog_by_id(dogId: int):
         # Query the database
         dog = dogWithImagesRepository.get_dog_with_images_by_id(dogId)
         
-        dogResponse = mapper.to(DogResponse).map(dog, fields_mapping={"images": []})
-        dogResponse.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
+        viewmodel_mapper.add(DogDTO, DogResponse, override=True)
+        dogResponse = viewmodel_mapper.map(dog)
 
         api_response = APIResponse(status_code=200, message=f"Queried dog from the database", data={ "results": dogResponse.model_dump() })
     except Exception as e:
@@ -306,8 +307,8 @@ async def query_by_dog_id(dogId: int, auth_result: dict = Security(auth.verify, 
         # Query the database
         dog = dogWithImagesRepository.get_dog_with_images_by_id(dogId)
         
-        dogFullDetailsResponse = mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={"images": []})
-        dogFullDetailsResponse.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
+        viewmodel_mapper.add(DogDTO, DogFullDetailsResponse, override=True)
+        dogFullDetailsResponse = viewmodel_mapper.map(dog)
 
         api_response = APIResponse(status_code=200, message=f"Queried dog from the database", data={ "results": dogFullDetailsResponse.model_dump() })
     except Exception as e:
@@ -322,7 +323,7 @@ async def query_by_dog_id(dogId: int, auth_result: dict = Security(auth.verify, 
 async def add_possible_dog_match(possibleDogMatchRequest: PossibleDogMatchRequest):
     try:
         # Create PossibleDogMatchDTO
-        possibleDogMatchDTO = mapper.to(PossibleDogMatchDTO).map(possibleDogMatchRequest)
+        possibleDogMatchDTO = viewmodel_mapper.map(possibleDogMatchRequest)
 
         # Add the possible dog match to the database
         dogWithImagesService.add_possible_dog_match(possibleDogMatchDTO)
@@ -342,9 +343,8 @@ async def get_dogs_by_reporter_id(page: int = Query(1, ge=1), page_size: int = Q
         # Query the database
         dogs, total_count = dogWithImagesService.get_all_dogs_with_images_by_reporter_id(auth_result["sub"], page=page, page_size=page_size)
         
-        dogFullDetailsResponses = [mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={"images": []}) for dog in dogs]
-        for dog, dogResponse in zip(dogs, dogFullDetailsResponses):
-            dogResponse.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
+        viewmodel_mapper.add(DogDTO, DogFullDetailsResponse, override=True)
+        dogFullDetailsResponses = [viewmodel_mapper.map(dog) for dog in dogs]
 
         api_response = APIResponse(status_code=200, message=f"Queried dogs by reporter ID from the database", data={ "results": dogFullDetailsResponses, "pagination": { "total": total_count, "page": page, "page_size": page_size, "returned": len(dogFullDetailsResponses) } })
     except Exception as e:
@@ -360,13 +360,9 @@ async def get_possible_dog_matches(dogId: Optional[int] = None, page: int = Quer
     try:
         # Query the database
         possibleDogMatches, total_count = dogWithImagesService.get_possible_dog_matches(dog_id=dogId, page=page, page_size=page_size)
-
-        possibleDogMatchResponses = [mapper.to(PossibleDogMatchResponse).map(possibleDogMatch, fields_mapping={ "dog": None, "possibleMatch": None }) for possibleDogMatch in possibleDogMatches]
-        for possibleDogMatch, possibleDogMatchResponse in zip(possibleDogMatches, possibleDogMatchResponses):
-            possibleDogMatchResponse.dog = mapper.to(DogResponse).map(possibleDogMatch.dog, fields_mapping={ "images": [] })
-            possibleDogMatchResponse.dog.images = [mapper.to(DogImageResponse).map(image) for image in possibleDogMatch.dog.images]
-            possibleDogMatchResponse.possibleMatch = mapper.to(DogResponse).map(possibleDogMatch.possibleMatch, fields_mapping={ "images": [] })
-            possibleDogMatchResponse.possibleMatch.images = [mapper.to(DogImageResponse).map(image) for image in possibleDogMatch.possibleMatch.images]
+        
+        viewmodel_mapper.add(DogDTO, DogResponse, override=True)
+        possibleDogMatchResponses = [viewmodel_mapper.map(possibleDogMatch) for possibleDogMatch in possibleDogMatches]
 
         api_response = APIResponse(status_code=200, message=f"Queried possible dog matches from the database", data={ "results": possibleDogMatchResponses, "pagination": { "total": total_count, "page": page, "page_size": page_size, "returned": len(possibleDogMatchResponses) } })
     except Exception as e:
@@ -403,24 +399,24 @@ async def add_document(dogRequest: DogAddRequest, auth_result: dict = Security(a
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 # Add an endpoint to set isVerified to True
-@router.post("/verify_document", response_model=APIResponse)
-async def verify_document(dogId: int, auth_result: str = Security(auth.verify, scopes=['write:verify_document'])):
-    logger.info(f"Verify document: {dogId}")
+# @router.post("/verify_document", response_model=APIResponse)
+# async def verify_document(dogId: int, auth_result: str = Security(auth.verify, scopes=['write:verify_document'])):
+#     logger.info(f"Verify document: {dogId}")
 
-    try:
-        # Add the documents to the database
-        logger.info(f"Verify document")
-        result = vecotrDBClient.update_document("Dog", dogId, {
-            "isVerified": True,
-        })
+#     try:
+#         # Add the documents to the database
+#         logger.info(f"Verify document")
+#         result = vecotrDBClient.update_document("Dog", dogId, {
+#             "isVerified": True,
+#         })
 
-        api_response = APIResponse(status_code=200, message=f"Verified document in the vecotrdb", data=result)
-    except Exception as e:
-        logger.error(f"Error while verifying document in the vecotrdb: {e}")
-        api_response = APIResponse(status_code=500, message=f"Error while verifying document in the vecotrdb: {e}")
-    finally:
-        # return back a json response and set the status code to api_response.status_code
-        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
+#         api_response = APIResponse(status_code=200, message=f"Verified document in the vecotrdb", data=result)
+#     except Exception as e:
+#         logger.error(f"Error while verifying document in the vecotrdb: {e}")
+#         api_response = APIResponse(status_code=500, message=f"Error while verifying document in the vecotrdb: {e}")
+#     finally:
+#         # return back a json response and set the status code to api_response.status_code
+#         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.get("/get_schema")
 async def get_schema(class_name: str):
@@ -494,15 +490,8 @@ async def delete_dog_by_id(dogId: int, auth_result: str = Security(auth.verify, 
 def get_dogs(type: Optional[DogType] = None, page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), auth_result: str = Security(auth.verify, scopes=['read:dogs'])):
     results, total_count = dogWithImagesService.get_all_dogs_with_images(type=type, page=page, page_size=page_size)
 
-    parsed_results = [
-        mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={
-            "images": []
-            })
-        for dog in results
-    ]
-    
-    for dog, dogResponse in zip(results, parsed_results):
-        dogResponse.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
+    viewmodel_mapper.add(DogDTO, DogFullDetailsResponse, override=True)
+    parsed_results = [viewmodel_mapper.map(dog) for dog in results]
     
     api_response = APIResponse(status_code=HTTPStatus.OK.value, data={ "results": parsed_results, "pagination": { "total": total_count, "page": page, "page_size": page_size, "returned": len(parsed_results) } })
     

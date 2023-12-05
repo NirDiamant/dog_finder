@@ -29,17 +29,14 @@ class DogWithImagesRepository:
         """
         try:
             with self.session_factory() as session:
-                dog: Dog = mapper.to(Dog).map(dogDTO, fields_mapping={
-                    "images": [DogImage(base64Image=image.base64Image, imageContentType=image.imageContentType) for image in dogDTO.images]
-                })
+                dog: Dog = mapper.map(dogDTO)
 
                 session.add(dog)
                 session.commit()
 
                 session.refresh(dog)
 
-                dogDTO = mapper.to(DogDTO).map(dog, fields_mapping={ "images": [] })
-                dogDTO.images = [mapper.to(DogImageDTO).map(image) for image in dog.images]
+                dogDTO = mapper.map(dog)
 
                 return dogDTO
         except SQLAlchemyError as e:
@@ -65,8 +62,7 @@ class DogWithImagesRepository:
             with self.session_factory() as session:
                 dog = session.query(Dog).options(subqueryload(Dog.images)).filter(Dog.id == dog_id).first()
                 
-                dogDTO = mapper.to(DogDTO).map(dog, fields_mapping={ "images": [] })
-                dogDTO.images = [mapper.to(DogImageDTO).map(image) for image in dog.images]
+                dogDTO = mapper.map(dog)
 
                 return dogDTO
         except SQLAlchemyError as e:
@@ -86,7 +82,7 @@ class DogWithImagesRepository:
         """
         try:
             with self.session_factory() as session:
-                dogs_query = session.query(Dog).options(subqueryload(Dog.images))
+                dogs_query = session.query(Dog).options(subqueryload(Dog.images), subqueryload(Dog.possibleMatches))
                 if type:
                     dogs_query = dogs_query.filter(Dog.type == type)
                 
@@ -96,9 +92,7 @@ class DogWithImagesRepository:
 
                 dogs = dogs_query.all()
 
-                dogsDTO = [mapper.to(DogDTO).map(dog, fields_mapping={ "images": [] }) for dog in dogs]
-                for i, dog in enumerate(dogs):
-                    dogsDTO[i].images = [mapper.to(DogImageDTO).map(image) for image in dog.images]
+                dogsDTO = [mapper.map(dog) for dog in dogs]
 
                 return dogsDTO, total_dogs
         except SQLAlchemyError as e:
@@ -126,9 +120,7 @@ class DogWithImagesRepository:
 
                 dogs = dogs_query.all()
 
-                dogsDTO = [mapper.to(DogDTO).map(dog, fields_mapping={ "images": [] }) for dog in dogs]
-                for i, dog in enumerate(dogs):
-                    dogsDTO[i].images = [mapper.to(DogImageDTO).map(image) for image in dog.images]
+                dogsDTO = [mapper.map(dog, fields_mapping={ "possibleMatch": None, "dog": None }) for dog in dogs]
 
                 return dogsDTO, total_dogs
         except SQLAlchemyError as e:
@@ -167,7 +159,7 @@ class DogWithImagesRepository:
         """
         try:
             with self.session_factory() as session:
-                possibleDogMatch: PossibleDogMatch = mapper.to(PossibleDogMatch).map(possibleDogMatchDTO)
+                possibleDogMatch: PossibleDogMatch = mapper.map(possibleDogMatchDTO)
 
                 dog = session.query(Dog).get(possibleDogMatch.dogId)
                 possibleMatch = session.query(Dog).get(possibleDogMatch.possibleMatchId)
@@ -213,13 +205,7 @@ class DogWithImagesRepository:
 
                 possibleDogMatches = possibleDogMatches_query.all()
 
-                possibleDogMatchesDTO = [mapper.to(PossibleDogMatchDTO).map(possibleDogMatch, fields_mapping={ "dog": None, "possibleMatch": None}) for possibleDogMatch in possibleDogMatches]
-
-                for possibleDogMatchDTO, possibleDogMatch in zip(possibleDogMatchesDTO, possibleDogMatches):
-                    possibleDogMatchDTO.dog = mapper.to(DogDTO).map(possibleDogMatch.dog, fields_mapping={ "images": [] })
-                    possibleDogMatchDTO.dog.images = [mapper.to(DogImageDTO).map(image) for image in possibleDogMatch.dog.images]
-                    possibleDogMatchDTO.possibleMatch = mapper.to(DogDTO).map(possibleDogMatch.possibleMatch, fields_mapping={ "images": [] })
-                    possibleDogMatchDTO.possibleMatch.images = [mapper.to(DogImageDTO).map(image) for image in possibleDogMatch.possibleMatch.images]
+                possibleDogMatchesDTO = [mapper.map(possibleDogMatch) for possibleDogMatch in possibleDogMatches]
 
                 return possibleDogMatchesDTO, total_possibleDogMatches
         except SQLAlchemyError as e:

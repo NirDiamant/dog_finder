@@ -1,6 +1,6 @@
 from datetime import date
 from enum import Enum
-from typing import List, Optional
+from typing import Any, List, Optional
 from pydantic import BaseModel, field_serializer, validator
 
 from app.viewmodels.data_types import DogAgeGroup, DogSex, DogType
@@ -103,7 +103,6 @@ class DogImageResponse(BaseModel):
 
 class DogResponse(BaseModel):
     id: int
-    images: List[DogImageResponse]
     type: DogType
     isResolved: bool = False
     isVerified: bool = False
@@ -127,6 +126,9 @@ class DogResponse(BaseModel):
     
     dogFoundOn: Optional[date] = None
 
+    images: List[DogImageResponse]
+    possibleMatches: List[Any]
+
     # add field_serializer to convert dogFoundOn to string
     @field_serializer("dogFoundOn")
     def dogFoundOn_serializer(self, v: date, _info):
@@ -137,7 +139,6 @@ class DogResponse(BaseModel):
 
 class DogFullDetailsResponse(BaseModel):
     id: int
-    images: List[DogImageResponse]
     type: DogType
     isResolved: bool = False
     isVerified: bool = False
@@ -161,6 +162,9 @@ class DogFullDetailsResponse(BaseModel):
     
     dogFoundOn: Optional[date] = None
 
+    images: List[DogImageResponse]
+    possibleMatches: List["PossibleDogMatchResponse"]
+
     # add field_serializer to convert dogFoundOn to string
     @field_serializer("dogFoundOn")
     def dogFoundOn_serializer(self, v: date, _info):
@@ -174,6 +178,6 @@ class PossibleDogMatchResponse(BaseModel):
     dogId: int
     possibleMatchId: int
     
-    dog: Optional[DogResponse]
-    possibleMatch: Optional[DogResponse]
+    dog: Optional[Any]
+    possibleMatch: Optional[Any]
 
