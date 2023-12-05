@@ -28,7 +28,7 @@ from io import BytesIO
 import base64
 from app.services.ivectordb_client import IVectorDBClient
 from app.services.weaviate_vectordb_client import WeaviateVectorDBClient
-from automapper import mapper
+from app.automapper import mapper
 from app.DAL.database import Database, get_connection_string
 from app.DAL.repositories import DogWithImagesRepository
 from app import viewmodel_mapper

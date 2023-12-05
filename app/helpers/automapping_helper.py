@@ -1,4 +1,4 @@
-from automapper import mapper
+from app.automapper import mapper
 from app.DAL.models import Dog, DogImage, PossibleDogMatch
 from app.DTO.dog_dto import DogDTO, DogImageDTO, PossibleDogMatchDTO
 from app.viewmodels.dog_viewmodel import DogResponse, DogImageResponse, PossibleDogMatchResponse, PossibleDogMatchRequest

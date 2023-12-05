@@ -3,7 +3,7 @@ from typing import Callable, Optional, Tuple
 from sqlalchemy.orm import Session, subqueryload
 from sqlalchemy.exc import SQLAlchemyError
 from app.DAL.models import Dog, DogImage, PossibleDogMatch
-from automapper import mapper
+from app.automapper import mapper
 from app.DTO.dog_dto import DogDTO, DogImageDTO, DogType, PossibleDogMatchDTO
 from app.MyLogger import logger
 

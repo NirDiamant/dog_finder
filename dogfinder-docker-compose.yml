@@ -31,7 +31,7 @@ services:
     - 0.0.0.0
     - --port
     - '8000'
-    image: dogfinder:latest
+    image: yandav78/dogfinder:0.0.25-dev
     ports:
     - 8000:8000
     restart: on-failure:0
