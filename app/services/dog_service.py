@@ -29,14 +29,14 @@ class DogWithImagesService:
         try:
             # Get dogs total count
             final_result = None
-            _, total_count = self.repository.get_all_dogs_with_images(type=None, page=1, page_size=1)
+            _, total_count = self.repository.get_all_dogs_with_images(type=None, is_resolved=False, page=1, page_size=1)
 
             # Calculate total pages
             total_pages = (total_count + 99) // 100
 
             # Loop over the total pages and index the dogs with images in the vector database
             for i in range(1, total_pages + 1):
-                dogDTOs, _ = self.repository.get_all_dogs_with_images(type=None, page=i, page_size=100)
+                dogDTOs, _ = self.repository.get_all_dogs_with_images(type=None, is_resolved=False, page=i, page_size=100)
 
                 result = self.vectordbIndexer.index_dogs_with_images(dogDTOs)
 
@@ -82,15 +82,26 @@ class DogWithImagesService:
             raise e
 
     # Update the dog isResolved field to True or False
-    def update_dog_is_resolved(self, dog_id: int, is_resolved: bool) -> None:
+    def update_dog_is_resolved(self, dog_id: int, possibleMatchId: int, is_resolved: bool) -> None:
         try:
             self.repository.update_dog_is_resolved(dog_id, is_resolved)
+            self.repository.delete_possible_dog_matches(dog_id)
+            self.repository.update_dog_is_resolved(possibleMatchId, is_resolved)
+            self.repository.delete_possible_dog_matches(possibleMatchId)
 
             self.vectordbIndexer.delete_dogs_with_images([Dog(id=dog_id)])
+            self.vectordbIndexer.delete_dogs_with_images([Dog(id=possibleMatchId)])
         except Exception as e:
             logger.exception(f"Error while updating dog isResolved field: {e}")
             raise e
 
+    def get_possible_dog_matches_count(self) -> int:
+        try:
+            return self.repository.get_possible_dog_matches_count()
+        except Exception as e:
+            logger.exception(f"Error while getting count of possible dog matches: {e}")
+            raise e
+    
     def add_possible_dog_match(self, possibleDogMatchDTO: PossibleDogMatchDTO) -> None:
         try:
             self.repository.add_possible_dog_match(possibleDogMatchDTO)

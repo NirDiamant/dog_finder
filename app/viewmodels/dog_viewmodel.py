@@ -38,6 +38,7 @@ RETURN_PROPERTIES = [
 
 class DogResolvedRequest(BaseModel):
     dogId: int
+    possibleMatchId: int
 
 class DogSearchRequest(BaseModel):
     top: Optional[int] = 10
