@@ -509,7 +509,7 @@ async def delete_dog_by_id(dogId: int, auth_result: str = Security(auth.verify, 
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 
-@router.get("/dogs")
+@router.get("/dogs", response_model=APIResponse)
 def get_dogs(type: Optional[DogType] = None, page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), auth_result: str = Security(auth.verify, scopes=['read:dogs'])):
     results, total_count = dogWithImagesService.get_all_dogs_with_images(type=type, page=page, page_size=page_size)
 
@@ -526,6 +526,20 @@ def get_dogs(type: Optional[DogType] = None, page: int = Query(1, ge=1), page_si
     api_response = APIResponse(status_code=HTTPStatus.OK.value, data={ "results": parsed_results, "pagination": { "total": total_count, "page": page, "page_size": page_size, "returned": len(parsed_results) } })
     
     return JSONResponse(content=jsonable_encoder(api_response), status_code=api_response.status_code)    
+
+@router.delete("/delete_possible_dog_match", response_model=APIResponse)
+async def delete_possible_dog_match(id: int, auth_result: str = Security(auth.verify, scopes=['delete:delete_possible_dog_match'])):
+    try:
+        logger.info(f"Deleting possible dog match with id {id}")
+
+        dogWithImagesService.delete_possible_dog_match(id)
+
+        api_response = APIResponse(status_code=200, message=f"Deleted possible dog match with id {id}")
+    except Exception as e:
+        logger.exception(f"Error while deleting possible dog match with id {id}: {e}")
+        api_response = APIResponse(status_code=500, message=f"Error while deleting possible dog match with id {id}: {e}")
+    finally:
+        return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.post("/dog_resolved", response_model=APIResponse)
 async def dog_resolved(dogResolvedRequest: DogResolvedRequest, auth_result: str = Security(auth.verify, scopes=['write:dog_resolved'])):

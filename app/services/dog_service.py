@@ -81,6 +81,13 @@ class DogWithImagesService:
             logger.exception(f"Error while getting possible dog matches: {e}")
             raise e
 
+    def delete_possible_dog_match(self, id: int) -> None:
+        try:
+            self.repository.delete_possible_dog_match(id)
+        except Exception as e:
+            logger.exception(f"Error while deleting possible dog match: {e}")
+            raise e
+
     # Update the dog isResolved field to True or False
     def update_dog_is_resolved(self, dog_id: int, possibleMatchId: int, is_resolved: bool) -> None:
         try:

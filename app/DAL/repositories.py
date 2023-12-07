@@ -162,6 +162,28 @@ class DogWithImagesRepository:
             session.rollback()
             raise e
 
+    def delete_possible_dog_match(self, id: int) -> None:
+        """
+        Delete a possible dog match from the database.
+
+        Args:
+            id (int): The ID of the possible dog match.
+        """
+        try:
+            with self.session_factory() as session:
+                possibleDogMatch = session.query(PossibleDogMatch).filter(PossibleDogMatch.id == id).first()
+                
+                session.delete(possibleDogMatch)
+                session.commit()
+        except SQLAlchemyError as e:
+            logger.exception(f"DB Error while deleting possible dog match: {e}")
+            session.rollback()
+            raise e
+        except Exception as e:
+            logger.exception(f"Error while deleting possible dog match: {e}")
+            session.rollback()
+            raise e
+        
     def delete_possible_dog_matches(self, dog_id: int) -> None:
         """
         Delete possible dog matches from the database.
