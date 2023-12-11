@@ -30,6 +30,7 @@ from app.services.weaviate_vectordb_client import WeaviateVectorDBClient
 from automapper import mapper
 from app.DAL.database import Database, get_connection_string
 from app.DAL.repositories import DogWithImagesRepository
+from lang_sam import LangSAM
 
 logger.info("Starting up the dogfinder router")
 
@@ -38,6 +39,7 @@ vecotrDBClient: IVectorDBClient
 dogWithImagesRepository: DogWithImagesRepository = None
 dogWithImagesService: DogWithImagesService = None
 embedding_model: Any = None
+image_model: Any = None
 db: Database = None
 
 # CHANGE THIS TO FALSE ON PRODUCTION
@@ -168,6 +170,7 @@ async def startup_event():
     global dogWithImagesRepository
     global dogWithImagesService
     global embedding_model
+    global image_model
     global db
 
     # Create the vector db client, connecting to the weaviate instance
@@ -191,6 +194,8 @@ async def startup_event():
     logger.info(f"Creating embedding model")
     embedding_model, cache_info = create_embedding_model()
     
+    image_model = LangSAM()
+
     # Create vectordb indexer
     vectorDBIndexer = VectorDBIndexer(vecotrDBClient, embedding_model)
 
@@ -525,7 +530,7 @@ def get_dogs(type: Optional[DogType] = None, page: int = Query(1, ge=1), page_si
     
     api_response = APIResponse(status_code=HTTPStatus.OK.value, data={ "results": parsed_results, "pagination": { "total": total_count, "page": page, "page_size": page_size, "returned": len(parsed_results) } })
     
-    return JSONResponse(content=jsonable_encoder(api_response), status_code=api_response.status_code)    
+    return JSONResponse(content=jsonable_encoder(api_response), status_code=api_response.status_code)
 
 @router.delete("/delete_possible_dog_match", response_model=APIResponse)
 async def delete_possible_dog_match(id: int, auth_result: str = Security(auth.verify, scopes=['delete:delete_possible_dog_match'])):
@@ -619,7 +624,7 @@ def query_vector_db(dogSearchRequest: DogSearchRequest):
     query_image = create_pil_images([dogSearchRequest.base64Image])[0]
 
     # Embed the query image
-    query_embedding = embed_query(query_image, embedding_model)
+    query_embedding = embed_query(query_image=query_image, embedding_model=embedding_model, image_model=image_model)
 
     # Build the filter with conditions to query the vector db
     filter = build_filter(dogSearchRequest)

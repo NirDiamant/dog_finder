@@ -5,6 +5,8 @@ from cachetools import cached, LRUCache
 from sentence_transformers import SentenceTransformer
 import os
 
+from app.model_optimization.remove_background import process_pil_image
+
 @timeit
 def create_embedding_model():
     embedding_model = create_sentence_transformer_embedding_model(), create_sentence_transformer_embedding_model.cache_info()
@@ -37,11 +39,13 @@ def embed_documents(documents, embedding_model):
     return texts_embedding
 
 @timeit
-def embed_query(query, embedding_model):
-    logger.info(f"Embedding query: '{query}'")
+def embed_query(query_image, embedding_model, image_model):
+    logger.info(f"Embedding query: '{query_image}'")
+
+    masked_query_image = process_pil_image(image_pil=query_image, image_model=image_model)
 
     if (embedding_model is not None):
-        query_embedding = embedding_model.encode(query)
+        query_embedding = embedding_model.encode(masked_query_image)
     else:
         # create a random embedding
         query_embedding = [0.1] * 512

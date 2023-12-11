@@ -12,3 +12,4 @@ sqlalchemy_utils
 psycopg2-binary
 # dependency_injector
 py-automapper
+opencv-python

@@ -18,3 +18,10 @@ def create_pil_images(base64Images: List[str]):
         pil_images.append(pil_image)
         
     return pil_images
+
+def pil_image_to_base64(pil_image):
+    buffered = BytesIO()
+    pil_image.save(buffered, format="JPEG")
+    img_str = base64.b64encode(buffered.getvalue())
+    
+    return img_str.decode('utf-8')
