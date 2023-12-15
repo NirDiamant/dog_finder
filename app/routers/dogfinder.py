@@ -1,6 +1,5 @@
-import hashlib
 from http import HTTPStatus
-import uuid
+
 from app.DTO.dog_dto import DogDTO, DogImageDTO, DogType, PossibleDogMatchDTO
 from app.helpers.image_helper import create_pil_images, get_base64
 from app.services.auth import VerifyToken
@@ -10,27 +9,25 @@ from app.services.dog_service import DogWithImagesService
 from app.services.vectordb_indexer import VectorDBIndexer
 from app.viewmodels.api_response import APIResponse
 from app.viewmodels.dog_viewmodel import RETURN_PROPERTIES, DogFullDetailsResponse, DogImageResponse, DogAddRequest, DogResolvedRequest, DogResponse, DogSearchRequest, PossibleDogMatchRequest, PossibleDogMatchResponse
-from fastapi import APIRouter, File, Form, Query, Security, UploadFile
+from fastapi import APIRouter, Query, Security, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from app.helpers.model_helper import create_embedding_model, embed_query
-from app.helpers.helper import detect_image_mimetype, generate_dog_id, hash_image, resize_image_and_convert_to_format, timeit
+from app.helpers.helper import timeit
+from app.helpers.image_helper import resize_and_convert
 from app.helpers.weaviate_helper import FilterValueTypes
 from weaviate.util import generate_uuid5
 from app.models.predicates import Predicate, Filter, and_, or_
 # from sentence_transformers import SentenceTransformer
 import os
-from datetime import date, datetime, timedelta
-from PIL import Image
-from io import BytesIO
-import base64
 from app.services.ivectordb_client import IVectorDBClient
 from app.services.weaviate_vectordb_client import WeaviateVectorDBClient
 from automapper import mapper
 from app.DAL.database import Database, get_connection_string
 from app.DAL.repositories import DogWithImagesRepository
-from lang_sam import LangSAM
+# from lang_sam import LangSAM
+from ultralytics import YOLO
 
 logger.info("Starting up the dogfinder router")
 
@@ -39,7 +36,7 @@ vecotrDBClient: IVectorDBClient
 dogWithImagesRepository: DogWithImagesRepository = None
 dogWithImagesService: DogWithImagesService = None
 embedding_model: Any = None
-image_model: Any = None
+image_segmentation_model: Any = None
 db: Database = None
 
 # CHANGE THIS TO FALSE ON PRODUCTION
@@ -170,7 +167,7 @@ async def startup_event():
     global dogWithImagesRepository
     global dogWithImagesService
     global embedding_model
-    global image_model
+    global image_segmentation_model
     global db
 
     # Create the vector db client, connecting to the weaviate instance
@@ -194,16 +191,15 @@ async def startup_event():
     logger.info(f"Creating embedding model")
     embedding_model, cache_info = create_embedding_model()
     
-    image_model = LangSAM(sam_type="vit_b")
+    # image_segmentation_model = LangSAM(sam_type="vit_b")    
+    image_segmentation_model = YOLO("app/model_optimization/yolov8x-seg.pt")  # Load pretrained YOLOv8x model):
 
     # Create vectordb indexer
-    vectorDBIndexer = VectorDBIndexer(vecotrDBClient, embedding_model)
+    vectorDBIndexer = VectorDBIndexer(vecotrDBClient, embedding_model, image_segmentation_model)
 
     # Create the dogWithImagesRepository with the session_factory
     dogWithImagesRepository = DogWithImagesRepository(session_factory=db.session)
     dogWithImagesService = DogWithImagesService(dogWithImagesRepository, vectorDBIndexer)
-
-    
 
 
 auth = VerifyToken()
@@ -624,7 +620,7 @@ def query_vector_db(dogSearchRequest: DogSearchRequest):
     query_image = create_pil_images([dogSearchRequest.base64Image])[0]
 
     # Embed the query image
-    query_embedding = embed_query(query_image=query_image, embedding_model=embedding_model, image_model=image_model)
+    query_embedding = embed_query(query_image=query_image, embedding_model=embedding_model, image_segmentation_model=image_segmentation_model)
 
     # Build the filter with conditions to query the vector db
     filter = build_filter(dogSearchRequest)
@@ -671,7 +667,7 @@ def handle_uploaded_images(imgs):
             img_base64 = img
 
         # Resize the image and convert it to the desired format
-        img_base64, img_content_type = resize_image_and_convert_to_format(img_base64, (1024, 1024))
+        img_base64, img_content_type = resize_and_convert(img_base64, (1024, 1024))
 
         # Append the resized and converted image and its content type to the list
         images.append((img_base64, img_content_type))

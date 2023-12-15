@@ -22,9 +22,9 @@ RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
 # RUN git clone https://github.com/IDEA-Research/GroundingDINO.git && cd GroundingDINO
 # RUN pip install -e GroundingDINO
 
-RUN cd ..
-RUN git clone https://github.com/luca-medeiros/lang-segment-anything && cd lang-segment-anything
-RUN pip install -e lang-segment-anything
+# RUN cd ..
+# RUN git clone https://github.com/luca-medeiros/lang-segment-anything && cd lang-segment-anything
+# RUN pip install -e lang-segment-anything
 
 # install sentence transformers no deps
 # ----------------------

@@ -7,13 +7,14 @@ from app.DTO.dog_dto import DogDTO, DogImageDTO
 from app.helpers.image_helper import create_pil_images
 from app.services.ivectordb_client import IVectorDBClient
 from app.MyLogger import logger
-from app.helpers.model_helper import embed_query
+from app.helpers.model_helper import embed_documents, embed_query
 from weaviate.util import generate_uuid5
 
 class VectorDBIndexer:
-    def __init__(self, vecotrDBClient: IVectorDBClient, embedding_model) -> None:
+    def __init__(self, vecotrDBClient: IVectorDBClient, embedding_model, image_segmentation_model) -> None:
         self.vecotrDBClient = vecotrDBClient
         self.embedding_model = embedding_model
+        self.image_segmentation_model = image_segmentation_model
 
     def index_dogs_with_images(self, dogDTOs: list[DogDTO]) -> None:
         # Add the document to the database
@@ -25,7 +26,7 @@ class VectorDBIndexer:
             pilImages = create_pil_images([image.base64Image for image in dogDTO.images])
 
             # Embed the document image
-            dog_images_embedding = embed_query(pilImages, self.embedding_model)
+            dog_images_embedding = embed_documents(pilImages, self.embedding_model, image_segmentation_model=self.image_segmentation_model)
 
             try:
                 for i, dogImage in enumerate(dogDTO.images):

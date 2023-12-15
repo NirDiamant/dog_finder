@@ -2,7 +2,9 @@
 import cv2
 import numpy as np
 from PIL import Image
+import torch
 
+from app.helpers.image_helper import convert_image_to_webp, convert_pil_image_to_webp
 
 
 def find_largest_blob_among_masks(mask_list):
@@ -79,7 +81,7 @@ def create_masked_image(pil_image, boolean_mask, background_color=(0, 0, 0)):
 
     return result_image
 
-def process_pil_image(pil_image, text_prompt="a dog", image_model=None):
+def process_pil_image(pil_image, text_prompt="a dog", image_segmentation_model=None):
     """
     Process a PIL image to find and mask the largest blob matching the text prompt.
     Args:
@@ -89,7 +91,7 @@ def process_pil_image(pil_image, text_prompt="a dog", image_model=None):
     PIL.Image.Image: The processed PIL image.
     """
 
-    masks, boxes, phrases, logits = image_model.predict(pil_image, text_prompt)
+    masks, boxes, phrases, logits = image_segmentation_model.predict(pil_image, text_prompt)
 
     if len(masks) == 0:
         print(f"No objects of the '{text_prompt}' prompt detected in the image.")
@@ -100,3 +102,41 @@ def process_pil_image(pil_image, text_prompt="a dog", image_model=None):
     masked_im = create_masked_image(pil_image, mask_np)
     
     return masked_im
+
+def process_pil_image_YOLO(pil_image, image_segmentation_model):
+    # Run inference on the image
+    results = image_segmentation_model(pil_image, retina_masks=True, classes=16)  # Class 16 for dogs in COCO
+    for result in results:
+        masks = result.masks.data  # get array results
+        boxes = result.boxes.data
+        clss = boxes[:, 5]  # extract classes
+        dog_indices = torch.where(clss == 16)  # indices of dog detections
+        dog_masks = masks[dog_indices]  # relevant masks for dogs
+        dog_mask = torch.any(dog_masks, dim=0).int() * 255  # combine masks
+        dog_mask = dog_mask.squeeze().cpu().numpy()
+        
+        image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+        if image.shape[:2] != dog_mask.shape:
+            raise ValueError("The dimensions of the image and the mask must match")
+
+        # Convert dog_mask to uint8 binary mask
+        binary_mask = np.uint8(dog_mask)
+
+        # Apply the mask to keep only the masked area
+        masked_area = cv2.bitwise_and(image, image, mask=binary_mask)
+
+        # Create an inverse mask for the background
+        inverse_mask = cv2.bitwise_not(binary_mask)
+
+        # Create a background image with the specified color
+        background = np.full(image.shape, (0, 0, 0), dtype=np.uint8)
+
+        # Apply the inverse mask to the background image
+        background = cv2.bitwise_and(background, background, mask=inverse_mask)
+
+        # Combine the masked area and the background
+        combined_image = cv2.add(masked_area, background)
+        combined_image = Image.fromarray(cv2.cvtColor(combined_image, cv2.COLOR_BGR2RGB))
+        combined_image = convert_pil_image_to_webp(combined_image)
+        
+        return combined_image

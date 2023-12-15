@@ -31,7 +31,7 @@ services:
     - 0.0.0.0
     - --port
     - '8000'
-    image: yandav78/dogfinder:0.0.26-vit_b
+    image: yandav78/dogfinder:0.0.26-YOLOv8
     ports:
     - 8000:8000
     - 5678:5678
