@@ -194,7 +194,7 @@ async def startup_event():
     logger.info(f"Creating embedding model")
     embedding_model, cache_info = create_embedding_model()
     
-    image_model = LangSAM()
+    image_model = LangSAM(sam_type="vit_b")
 
     # Create vectordb indexer
     vectorDBIndexer = VectorDBIndexer(vecotrDBClient, embedding_model)

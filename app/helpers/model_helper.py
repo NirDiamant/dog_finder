@@ -42,7 +42,7 @@ def embed_documents(documents, embedding_model):
 def embed_query(query_image, embedding_model, image_model):
     logger.info(f"Embedding query: '{query_image}'")
 
-    masked_query_image = process_pil_image(image_pil=query_image, image_model=image_model)
+    masked_query_image = process_pil_image(pil_image=query_image, image_model=image_model)
 
     if (embedding_model is not None):
         query_embedding = embedding_model.encode(masked_query_image)

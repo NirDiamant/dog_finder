@@ -79,7 +79,7 @@ def create_masked_image(pil_image, boolean_mask, background_color=(0, 0, 0)):
 
     return result_image
 
-def process_pil_image(image_pil, text_prompt="a dog", image_model=None):
+def process_pil_image(pil_image, text_prompt="a dog", image_model=None):
     """
     Process a PIL image to find and mask the largest blob matching the text prompt.
     Args:
@@ -89,7 +89,7 @@ def process_pil_image(image_pil, text_prompt="a dog", image_model=None):
     PIL.Image.Image: The processed PIL image.
     """
 
-    masks, boxes, phrases, logits = image_model.predict(image_pil, text_prompt)
+    masks, boxes, phrases, logits = image_model.predict(pil_image, text_prompt)
 
     if len(masks) == 0:
         print(f"No objects of the '{text_prompt}' prompt detected in the image.")
@@ -97,6 +97,6 @@ def process_pil_image(image_pil, text_prompt="a dog", image_model=None):
     
     masks_np = [mask.squeeze().cpu().numpy() for mask in masks]
     mask_np = find_largest_blob_among_masks(masks_np)
-    masked_im = create_masked_image(image_pil, mask_np)
+    masked_im = create_masked_image(pil_image, mask_np)
     
     return masked_im

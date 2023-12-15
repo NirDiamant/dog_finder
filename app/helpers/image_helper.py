@@ -25,3 +25,28 @@ def pil_image_to_base64(pil_image):
     img_str = base64.b64encode(buffered.getvalue())
     
     return img_str.decode('utf-8')
+
+def resize_image(img: Image, max_size: tuple[int, int]) -> Image:
+    """
+    Resize an image if its dimensions exceed the maximum size.
+
+    Args:
+        img (Image): The image to resize.
+        max_size (tuple[int, int]): The maximum width and height of the resized image.
+
+    Returns:
+        Image: The resized image.
+    """
+    # Check if the image needs to be resized
+    width, height = img.size
+    max_width, max_height = max_size
+
+    # If the image needs resized, resize it
+    if width > max_width or height > max_height:
+        # Calculate the new size while maintaining aspect ratio
+        ratio = min(max_width / width, max_height / height)
+        new_size = (int(width * ratio), int(height * ratio))
+        # Resize the image and return it
+        img = img.resize(new_size)
+    
+    return img
