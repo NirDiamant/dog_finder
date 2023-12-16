@@ -31,14 +31,18 @@ class VectorDBIndexer:
                 dog_images_embedding = embed_documents(pilImages, self.embedding_model, image_segmentation_model=self.image_segmentation_model)
             
                 for i, dogImage in enumerate(dogDTO.images):
-                    logger.info(f"Adding document {dogDTO.id} with image id {dogImage.id} to VectorDB")
-                    data_properties = create_data_properties(dogDTO, dogImage)
-                    data_properties["uuid5"] = generate_uuid5({"dogId": dogDTO.id, "imageId": dogImage.id })
-                    data_properties["document_embedding"] = dog_images_embedding[i]
-                    documents.append(data_properties)
+                    try:
+                        logger.info(f"Adding document {dogDTO.id} with image id {dogImage.id} to VectorDB")
+                        data_properties = create_data_properties(dogDTO, dogImage)
+                        data_properties["uuid5"] = generate_uuid5({"dogId": dogDTO.id, "imageId": dogImage.id })
+                        data_properties["document_embedding"] = dog_images_embedding[i]
+                        documents.append(data_properties)
+                    except Exception as e:
+                        logger.exception(f"Error while creating document for dog id {dogDTO.id} and image id {dogImage.id}: {e}")
+                        failed_objects.append({"dogId": dogDTO.id, "imageId": dogImage.id})
             except Exception as e:
-                logger.exception(f"Error while creating indexing document for dog with id {dogDTO.id}: {e}")
-                failed_objects.append(dogDTO.id)
+                logger.exception(f"Error while indexing dog id {dogDTO.id}: {e}")
+                failed_objects.extend([{"dogId": dogDTO.id, "imageId": dogImage.id} for dogImage in dogDTO.images])
 
         result = self.vecotrDBClient.add_documents_batch("Dog", documents)
 
