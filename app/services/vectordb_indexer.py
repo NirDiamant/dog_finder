@@ -19,6 +19,7 @@ class VectorDBIndexer:
     def index_dogs_with_images(self, dogDTOs: list[DogDTO]) -> None:
         # Add the document to the database
         documents = []
+        failed_objects = []
 
         # iterate over dogs and each image for each dog and create a list of data_properties, add them to documents. Add the documents to the database
         for dogDTO in dogDTOs:
@@ -37,9 +38,13 @@ class VectorDBIndexer:
                     documents.append(data_properties)
             except Exception as e:
                 logger.exception(f"Error while creating indexing document for dog with id {dogDTO.id}: {e}")
+                failed_objects.append(dogDTO.id)
 
         result = self.vecotrDBClient.add_documents_batch("Dog", documents)
 
+        result["failed"] += len(failed_objects)
+        result["failed_objects"].extend(failed_objects)
+        
         return result
     
     def delete_dogs_with_images(self, dogs: List[Dog]) -> None:
