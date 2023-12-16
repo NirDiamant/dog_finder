@@ -36,7 +36,7 @@ class VectorDBIndexer:
                     data_properties["document_embedding"] = dog_images_embedding[i]
                     documents.append(data_properties)
             except Exception as e:
-                logger.error(f"Error while creating indexing document for dog with id {dogDTO.id}: {e}")
+                logger.exception(f"Error while creating indexing document for dog with id {dogDTO.id}: {e}")
 
         result = self.vecotrDBClient.add_documents_batch("Dog", documents)
 

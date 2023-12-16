@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from PIL import Image
 import torch
-
+from app.MyLogger import logger
 from app.helpers.image_helper import convert_image_to_webp, convert_pil_image_to_webp
 
 
@@ -107,6 +107,10 @@ def process_pil_image_YOLO(pil_image, image_segmentation_model):
     # Run inference on the image
     results = image_segmentation_model(pil_image, retina_masks=True, classes=16)  # Class 16 for dogs in COCO
     for result in results:
+        if result.masks == None:
+            logger.info(f"No dogs detected in the image.")
+            return pil_image
+        
         masks = result.masks.data  # get array results
         boxes = result.boxes.data
         clss = boxes[:, 5]  # extract classes
