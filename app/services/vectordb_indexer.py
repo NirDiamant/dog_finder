@@ -7,38 +7,48 @@ from app.DTO.dog_dto import DogDTO, DogImageDTO
 from app.helpers.image_helper import create_pil_images
 from app.services.ivectordb_client import IVectorDBClient
 from app.MyLogger import logger
-from app.helpers.model_helper import embed_query
+from app.helpers.model_helper import embed_documents, embed_query
 from weaviate.util import generate_uuid5
 
 class VectorDBIndexer:
-    def __init__(self, vecotrDBClient: IVectorDBClient, embedding_model) -> None:
+    def __init__(self, vecotrDBClient: IVectorDBClient, embedding_model, image_segmentation_model) -> None:
         self.vecotrDBClient = vecotrDBClient
         self.embedding_model = embedding_model
+        self.image_segmentation_model = image_segmentation_model
 
     def index_dogs_with_images(self, dogDTOs: list[DogDTO]) -> None:
         # Add the document to the database
         documents = []
+        failed_objects = []
 
         # iterate over dogs and each image for each dog and create a list of data_properties, add them to documents. Add the documents to the database
         for dogDTO in dogDTOs:
-            # Create a list of PIL images from the base64 images
-            pilImages = create_pil_images([image.base64Image for image in dogDTO.images])
-
-            # Embed the document image
-            dog_images_embedding = embed_query(pilImages, self.embedding_model)
-
             try:
+                # Create a list of PIL images from the base64 images
+                pilImages = create_pil_images([image.base64Image for image in dogDTO.images])
+
+                # Embed the document image
+                dog_images_embedding = embed_documents(pilImages, self.embedding_model, image_segmentation_model=self.image_segmentation_model)
+            
                 for i, dogImage in enumerate(dogDTO.images):
-                    logger.info(f"Adding document {dogDTO.id} with image id {dogImage.id} to VectorDB")
-                    data_properties = create_data_properties(dogDTO, dogImage)
-                    data_properties["uuid5"] = generate_uuid5({"dogId": dogDTO.id, "imageId": dogImage.id })
-                    data_properties["document_embedding"] = dog_images_embedding[i]
-                    documents.append(data_properties)
+                    try:
+                        logger.info(f"Adding document {dogDTO.id} with image id {dogImage.id} to VectorDB")
+                        data_properties = create_data_properties(dogDTO, dogImage)
+                        data_properties["uuid5"] = generate_uuid5({"dogId": dogDTO.id, "imageId": dogImage.id })
+                        data_properties["document_embedding"] = dog_images_embedding[i]
+                        documents.append(data_properties)
+                    except Exception as e:
+                        logger.exception(f"Error while creating document for dog id {dogDTO.id} and image id {dogImage.id}: {e}")
+                        failed_objects.append({"dogId": dogDTO.id, "imageId": dogImage.id})
             except Exception as e:
-                logger.error(f"Error while creating data_properties for document image: {e}")
+                logger.exception(f"Error while indexing dog id {dogDTO.id}: {e}")
+                failed_objects.extend([{"dogId": dogDTO.id, "imageId": dogImage.id} for dogImage in dogDTO.images])
 
         result = self.vecotrDBClient.add_documents_batch("Dog", documents)
 
+        result["failed"] += len(failed_objects)
+        result["failed_objects"].extend(failed_objects)
+        
         return result
     
     def delete_dogs_with_images(self, dogs: List[Dog]) -> None:
