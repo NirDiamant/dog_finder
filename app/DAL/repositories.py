@@ -267,7 +267,7 @@ class DogWithImagesRepository:
         """
         try:
             with self.session_factory() as session:
-                possibleDogMatches_query = session.query(PossibleDogMatch).options(subqueryload(PossibleDogMatch.dog), subqueryload(PossibleDogMatch.possibleMatch))
+                possibleDogMatches_query = session.query(PossibleDogMatch) #.options(subqueryload(PossibleDogMatch.dog), subqueryload(PossibleDogMatch.possibleMatch))
                 
                 if dog_id is not None:
                     possibleDogMatches_query = possibleDogMatches_query.filter(PossibleDogMatch.dogId == dog_id)
