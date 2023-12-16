@@ -453,6 +453,7 @@ async def reindex_all_dogs_with_images(auth_result: str = Security(auth.verify, 
         # Reindex all dogs with images
         result = dogWithImagesService.index_all_dogs_with_images()
 
+        logger.info(f"Reindexed all dogs with images in the vecotrdb {result}")
         api_response = APIResponse(status_code=200, message=f"Reindexed all dogs with images in the vecotrdb", meta=result)
     except Exception as e:
         logger.exception(f"Error while reindexing all dogs with images in the vecotrdb: {e}")
