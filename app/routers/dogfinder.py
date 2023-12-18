@@ -188,7 +188,6 @@ async def startup_event():
     db.create_tables()
     
     # Create the embedding model
-    logger.info(f"Creating embedding model")
     embedding_model, cache_info = create_embedding_model()
     
     # image_segmentation_model = LangSAM(sam_type="vit_b")    
