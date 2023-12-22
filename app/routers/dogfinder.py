@@ -39,7 +39,7 @@ embedding_model: Any = None
 image_segmentation_model: Any = None
 db: Database = None
 
-CERTAINTY = os.environ.get("CERTAINTY", 0.8607)
+CERTAINTY = os.environ.get("CERTAINTY", 0.6355)
 logger.info(f"CERTAINTY: {CERTAINTY}")
 
 # CHANGE THIS TO FALSE ON PRODUCTION
