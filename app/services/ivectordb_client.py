@@ -16,7 +16,7 @@ class IVectorDBClient(ABC):
         pass
 
     @abstractmethod
-    def query(self, class_name: str, query_embedding: List[float], limit: int = None, offset: int = None, filter: Dict[str, Any] = None) -> dict:
+    def query(self, class_name: str, query_embedding: List[float], limit: int = None, offset: int = None, filter: Dict[str, Any] = None, certainty = 0.0, properties: List[str] = None) -> dict:
         pass
 
     @abstractmethod

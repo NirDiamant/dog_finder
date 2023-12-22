@@ -39,6 +39,8 @@ embedding_model: Any = None
 image_segmentation_model: Any = None
 db: Database = None
 
+CERTAINTY = os.environ.get("CERTAINTY", 0.8607)
+
 # CHANGE THIS TO FALSE ON PRODUCTION
 IS_VERIFIED_FIELD_DEFAULT_VALUE = False
 
@@ -662,7 +664,7 @@ def query_vector_db(dogSearchRequest: DogSearchRequest):
 
     # Query the database
     logger.info(f"Querying the database")
-    results = vecotrDBClient.query(class_name="Dog", query_embedding=query_embedding, limit=dogSearchRequest.top, offset=None, filter=filter.to_dict(), properties=dogSearchRequest.return_properties)
+    results = vecotrDBClient.query(class_name="Dog", query_embedding=query_embedding, limit=dogSearchRequest.top, offset=None, filter=filter.to_dict(), certainty=CERTAINTY, properties=dogSearchRequest.return_properties)
 
 
     # results may contain the same dog id multiple times, so we need to remove the duplicates and keep the one with the highest score
