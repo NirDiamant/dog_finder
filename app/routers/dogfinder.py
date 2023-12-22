@@ -40,6 +40,7 @@ image_segmentation_model: Any = None
 db: Database = None
 
 CERTAINTY = os.environ.get("CERTAINTY", 0.8607)
+logger.info(f"CERTAINTY: {CERTAINTY}")
 
 # CHANGE THIS TO FALSE ON PRODUCTION
 IS_VERIFIED_FIELD_DEFAULT_VALUE = False
