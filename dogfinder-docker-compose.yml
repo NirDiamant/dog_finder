@@ -31,9 +31,10 @@ services:
     - 0.0.0.0
     - --port
     - '8000'
-    image: dogfinder:latest
+    image: yandav78/dogfinder:0.0.27-Dino
     ports:
     - 8000:8000
+    - 5678:5678
     restart: on-failure:0
     env_file: 
       - env_vars/.env.development # load env vars

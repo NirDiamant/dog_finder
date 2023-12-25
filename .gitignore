@@ -7,3 +7,4 @@ __pycache__
 .history/
 dogfinder.db
 *.DS_Store
+app/model_optimization/yolov8x-seg.pt

@@ -133,7 +133,7 @@ class WeaviateVectorDBClient(IVectorDBClient):
             raise
    
     @timeit
-    def query(self, class_name: str, query_embedding: List[float], limit: int = None, offset: int = None, filter: Dict[str, Any] = None, properties: List[str] = None):
+    def query(self, class_name: str, query_embedding: List[float], limit: int = None, offset: int = None, filter: Dict[str, Any] = None, certainty = 0.0, properties: List[str] = None):
         """
         Queries the model with a given query and returns best matches.
         """
@@ -157,10 +157,11 @@ class WeaviateVectorDBClient(IVectorDBClient):
                 .get(class_name, properties)
                 .with_near_vector({
                     "vector": query_embedding,
+                    "certainty": certainty,
                 })
                 .with_where(filter)
                 .with_limit(limit)
-                .with_additional(["distance","id"])
+                .with_additional(["distance","certainty","id"])
                 .do()
             )
         
@@ -177,8 +178,12 @@ class WeaviateVectorDBClient(IVectorDBClient):
         # The score should be calulated as max(0, min(1, 1-doc._additional["distance"])
         # round the score to 4 decimals in one line
         for doc in results:
-            if "_additional" in doc and "distance" in doc["_additional"]:
-                doc["score"] = round(max(0, min(1, 1-doc["_additional"]["distance"])), 4)
+            # if "_additional" in doc and "distance" in doc["_additional"]:
+            #     doc["score"] = round(max(0, min(1, 1-doc["_additional"]["distance"])), 4)
+            if "_additional" in doc and "certainty" in doc["_additional"]:
+                doc["score"] = round(doc["_additional"]["certainty"], 4)
+
+        
 
         logger.info(f"Results: {results}")
         

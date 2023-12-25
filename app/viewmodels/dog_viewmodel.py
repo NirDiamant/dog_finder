@@ -38,6 +38,7 @@ RETURN_PROPERTIES = [
 
 class DogResolvedRequest(BaseModel):
     dogId: int
+    possibleMatchId: int
 
 class DogSearchRequest(BaseModel):
     top: Optional[int] = 10
@@ -168,3 +169,12 @@ class DogFullDetailsResponse(BaseModel):
     
     class Config:
         use_enum_values = True
+
+class PossibleDogMatchResponse(BaseModel):
+    id: int
+    dogId: int
+    possibleMatchId: int
+    
+    dog: Optional[DogResponse]
+    possibleMatch: Optional[DogResponse]
+

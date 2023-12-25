@@ -46,7 +46,9 @@ class Dog(Base):
     updatedAt = Column(DateTime, onupdate=datetime.utcnow)
 
     # relationship
-    images = relationship('DogImage', back_populates='dog')
+    images = relationship('DogImage', back_populates='dog', cascade='all, delete-orphan')
+    possibleMatches = relationship('PossibleDogMatch', foreign_keys='PossibleDogMatch.dogId', back_populates='dog', cascade='all, delete-orphan')
+    possibleMatchesOf = relationship('PossibleDogMatch', foreign_keys='PossibleDogMatch.possibleMatchId', back_populates='possibleMatch', cascade='all, delete-orphan')
 
 class DogImage(Base):
     __tablename__ = 'dog_images'
@@ -68,5 +70,5 @@ class PossibleDogMatch(Base):
     createdAt = Column(DateTime, default=datetime.utcnow)
     updatedAt = Column(DateTime, onupdate=datetime.utcnow)
 
-    dog = relationship('Dog', foreign_keys=[dogId])
-    possibleMatch = relationship('Dog', foreign_keys=[possibleMatchId])
+    dog = relationship('Dog', foreign_keys=[dogId], back_populates='possibleMatches')
+    possibleMatch = relationship('Dog', foreign_keys=[possibleMatchId], back_populates='possibleMatchesOf')
