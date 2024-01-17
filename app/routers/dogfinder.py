@@ -513,8 +513,8 @@ async def delete_dog_by_id(dogId: int, auth_result: str = Security(auth.verify, 
         return JSONResponse(content=api_response.to_dict(), status_code=api_response.status_code)
 
 @router.get("/dogs", response_model=APIResponse)
-def get_dogs(type: Optional[DogType] = None, page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100)):
-    results, total_count = dogWithImagesService.get_all_dogs_with_images(type=type, page=page, page_size=page_size)
+def get_dogs(type: Optional[DogType] = None, page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), sort_order: str = Query("desc", regex="^(desc|asc)$")):
+    results, total_count = dogWithImagesService.get_all_dogs_with_images(type=type, page=page, page_size=page_size, sort_order=sort_order)
 
     parsed_results = [
         mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={
@@ -531,26 +531,8 @@ def get_dogs(type: Optional[DogType] = None, page: int = Query(1, ge=1), page_si
     return JSONResponse(content=jsonable_encoder(api_response), status_code=api_response.status_code)
 
 @router.get("/get_all_dogs", response_model=APIResponse)
-def get_all_dogs(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), auth_result: str = Security(auth.verify, scopes=['read:dogs'])):
-    results, total_count = dogWithImagesService.get_all_dogs_with_images(type=None, page=page, page_size=page_size)
-
-    parsed_results = [
-        mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={
-            "images": []
-            })
-        for dog in results
-    ]
-    
-    for dog, dogResponse in zip(results, parsed_results):
-        dogResponse.images = [mapper.to(DogImageResponse).map(image) for image in dog.images]
-    
-    api_response = APIResponse(status_code=HTTPStatus.OK.value, data={ "results": parsed_results, "pagination": { "total": total_count, "page": page, "page_size": page_size, "returned": len(parsed_results) } })
-    
-    return JSONResponse(content=jsonable_encoder(api_response), status_code=api_response.status_code)
-
-@router.get("/get_all_dogs", response_model=APIResponse)
-def get_all_dogs(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), auth_result: str = Security(auth.verify, scopes=['read:dogs'])):
-    results, total_count = dogWithImagesService.get_all_dogs_with_images(type=None, page=page, page_size=page_size)
+def get_all_dogs(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), sort_order: str = Query("desc", regex="^(desc|asc)$"), auth_result: str = Security(auth.verify, scopes=['read:dogs'])):
+    results, total_count = dogWithImagesService.get_all_dogs_with_images(type=None, page=page, page_size=page_size, sort_order=sort_order)
 
     parsed_results = [
         mapper.to(DogFullDetailsResponse).map(dog, fields_mapping={
