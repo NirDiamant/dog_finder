@@ -72,7 +72,7 @@ class DogWithImagesRepository:
         except SQLAlchemyError as e:
             raise e
 
-    def get_all_dogs_with_images(self, type: Optional[DogType] = None, is_resolved: Optional[bool] = None, page: int = 1, page_size: int = 10) -> Tuple[list[DogDTO], int]:
+    def get_all_dogs_with_images(self, type: Optional[DogType] = None, is_resolved: Optional[bool] = None, page: int = 1, page_size: int = 10, sort_order: str = "desc") -> Tuple[list[DogDTO], int]:
         """
         Retrieve all dogs with images from the database.
 
@@ -93,6 +93,12 @@ class DogWithImagesRepository:
                 
                 if is_resolved is not None:
                     dogs_query = dogs_query.filter(Dog.isResolved == is_resolved)
+
+                # add sorting by id either ascending or descending based on sort_order parameter
+                if sort_order == "asc":
+                    dogs_query = dogs_query.order_by("id")
+                elif sort_order == "desc":
+                    dogs_query = dogs_query.order_by(Dog.id.desc())
 
                 total_dogs = dogs_query.count()
 

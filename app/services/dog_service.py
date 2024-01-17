@@ -60,9 +60,9 @@ class DogWithImagesService:
             logger.exception(f"Error while getting dog with images by ID: {e}")
             raise e
 
-    def get_all_dogs_with_images(self, type: Optional[DogType] = None, page: int = 1, page_size: int = 10) -> Tuple[list[DogDTO], int]:
+    def get_all_dogs_with_images(self, type: Optional[DogType] = None, page: int = 1, page_size: int = 10, sort_order: str = "desc") -> Tuple[list[DogDTO], int]:
         try:
-            return self.repository.get_all_dogs_with_images(type=type, page=page, page_size=page_size)
+            return self.repository.get_all_dogs_with_images(type=type, page=page, page_size=page_size, sort_order=sort_order)
         except Exception as e:
             logger.exception(f"Error while getting all dogs with images: {e}")
             raise e
